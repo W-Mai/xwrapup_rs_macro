@@ -1,11 +1,3 @@
-extern crate proc_macro;
-
-use proc_macro::TokenStream;
-
-use syn::{Expr, ExprLit, parse_macro_input};
-use quote::{quote, ToTokens};
-use syn::parse::Parse;
-
 //! A widget.
 //! ```
 //! use xwrapup_rs_macro::ui;
@@ -18,9 +10,21 @@ use syn::parse::Parse;
 //!         ChildWidget1 (attr0: value0, attr1: value1, attr2: value2, ...) {
 //!           ...
 //!         }
+//!         if (cond) {
+//!            ...
+//!         }
 //!     }
 //! )
 //! ```
+
+extern crate proc_macro;
+
+use proc_macro::TokenStream;
+
+use syn::{Expr, ExprLit, parse_macro_input};
+use quote::{quote, ToTokens};
+use syn::parse::Parse;
+
 
 struct Attr {
     name: String,
