@@ -21,7 +21,7 @@ extern crate proc_macro;
 
 
 use proc_macro::TokenStream;
-use syn::{Expr, ExprLit, parse_macro_input, Ident};
+use syn::{Expr, parse_macro_input, Ident};
 use quote::{quote, ToTokens};
 use syn::parse::Parse;
 
@@ -86,17 +86,19 @@ impl ToTokens for Widget {
     fn to_tokens(&self, tokens: &mut proc_macro2::TokenStream) {
         let Widget { name, attrs, children } = self;
 
+        let name_string = name.to_string();
+
         let token_string = quote! {
-            {
-                name: #name,
-                attrs: [
-                    #(#attrs),*
-                ],
-                children: [
-                    #(#children),*
-                ],
-            }
-        }.to_string();
+            println!("{{");
+            println!("  name: {}", #name_string);
+            println!("  attrs: [");
+            #( #attrs )*
+            println!("  ],");
+            println!("  children: [");
+            #( #children )*
+            println!("  ],");
+            println!("}}");
+        };
 
         tokens.extend(quote! {
             #token_string
@@ -107,12 +109,9 @@ impl ToTokens for Widget {
 impl ToTokens for Attr {
     fn to_tokens(&self, tokens: &mut proc_macro2::TokenStream) {
         let Attr { name, value } = self;
-
+        let name_string = name.to_string();
         let token_string = quote! {
-            {
-                name: #name,
-                value: #value,
-            }
+            println!("{{ name: {}, value: {} }},", #name_string, #value);
         };
 
         tokens.extend(quote! {
