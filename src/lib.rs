@@ -6,15 +6,21 @@ use syn::{Expr, ExprLit, parse_macro_input};
 use quote::{quote, ToTokens};
 use syn::parse::Parse;
 
-/// A widget.
-/// Widget (attr0: value0, attr1: value1, attr2: value2, ...) {
-///     ChildWidget0 (attr0: value0, attr1: value1, attr2: value2, ...) {
-///        ...
-///     }
-///     ChildWidget1 (attr0: value0, attr1: value1, attr2: value2, ...) {
-///       ...
-///     }
-/// }
+//! A widget.
+//! ```
+//! use xwrapup_rs_macro::ui;
+//!
+//! ui!(
+//!     Widget (attr0: value0, attr1: value1, attr2: value2, ...) {
+//!         ChildWidget0 (attr0: value0, attr1: value1, attr2: value2, ...) {
+//!            ...
+//!         }
+//!         ChildWidget1 (attr0: value0, attr1: value1, attr2: value2, ...) {
+//!           ...
+//!         }
+//!     }
+//! )
+//! ```
 
 struct Attr {
     name: String,
