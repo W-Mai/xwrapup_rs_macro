@@ -1,22 +1,26 @@
 use xwrapup_rs_macro::{ui};
 
+static A: i32 = 20;
+
 fn main() {
-    ui!(
-        test (a: "1", b: 1 + 2, d: 5) {
-            test2 (b: "3") {
-                test3 (d: "hhh") {
+    ui! {
+        div (width: 100, height: 100 + A, color: "red") {
+            text (content: "hello world") {
+                picker (values: vec!["1", "2", "3"]) {
 
                 }
             }
-            test4 {
+            button {
 
             }
 
             if (a == "1") {
-                test5 {
+                input {
 
                 }
             }
         }
-    );
+    }
+
+    return;
 }

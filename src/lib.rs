@@ -34,12 +34,20 @@ struct Attr {
 struct Widget {
     name: Ident,
 
+    parent: Ident,
+
     attrs: Vec<Attr>,
     children: Vec<Widget>,
 }
 
 impl Parse for Widget {
     fn parse(input: syn::parse::ParseStream) -> syn::Result<Self> {
+        Widget::parse_with_parent(input, Ident::new("screen", proc_macro2::Span::call_site()))
+    }
+}
+
+impl Widget {
+    fn parse_with_parent(input: syn::parse::ParseStream, parent: Ident) -> syn::Result<Self> {
         let name = input.parse::<syn::Ident>()?;
 
         let mut attrs = Vec::new();
@@ -65,7 +73,7 @@ impl Parse for Widget {
 
         while !content.is_empty() {
             if content.peek(syn::Ident) {
-                children.push(content.parse()?);
+                children.push(Widget::parse_with_parent(&content, name.clone())?);
             } else if content.peek(syn::Token![if]) {
                 content.parse::<syn::Token![if]>()?;
                 let cond = content.parse::<syn::Expr>()?;
@@ -78,31 +86,33 @@ impl Parse for Widget {
                 }
             }
         }
-        Ok(Widget { name, attrs, children })
+
+        Ok(Widget { name, parent, attrs, children })
     }
 }
 
 impl ToTokens for Widget {
     fn to_tokens(&self, tokens: &mut proc_macro2::TokenStream) {
-        let Widget { name, attrs, children } = self;
+        let Widget { name, parent, attrs, children } = self;
 
+        let parent_string = parent.to_string();
         let name_string = name.to_string();
 
-        let token_string = quote! {
-            println!("{{");
-            println!("  name: {}", #name_string);
-            println!("  attrs: [");
-            #( #attrs )*
-            println!("  ],");
-            println!("  children: [");
-            #( #children )*
-            println!("  ],");
-            println!("}}");
-        };
-
         tokens.extend(quote! {
-            #token_string
+            println!("let {} = obj::new({})", #name_string, #parent_string);
         });
+
+        for attr in attrs {
+            let attr_name = &attr.name.to_string();
+            let attr_value = &attr.value;
+            tokens.extend(quote! {
+                println!("{}.set_{}({:?})", #name_string, #attr_name, #attr_value);
+            });
+        }
+
+        for child in children {
+            child.to_tokens(tokens);
+        }
     }
 }
 
@@ -111,7 +121,7 @@ impl ToTokens for Attr {
         let Attr { name, value } = self;
         let name_string = name.to_string();
         let token_string = quote! {
-            println!("{{ name: {}, value: {} }},", #name_string, #value);
+            println!("setAttribute({}, {})", #name_string, stringify!(#value));
         };
 
         tokens.extend(quote! {
