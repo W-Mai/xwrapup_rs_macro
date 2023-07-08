@@ -19,20 +19,20 @@
 
 extern crate proc_macro;
 
-use proc_macro::TokenStream;
 
-use syn::{Expr, ExprLit, parse_macro_input};
+use proc_macro::TokenStream;
+use syn::{Expr, ExprLit, parse_macro_input, Ident};
 use quote::{quote, ToTokens};
 use syn::parse::Parse;
 
 
 struct Attr {
-    name: String,
+    name: Ident,
     value: Expr,
 }
 
 struct Widget {
-    name: String,
+    name: Ident,
 
     attrs: Vec<Attr>,
     children: Vec<Widget>,
@@ -40,7 +40,7 @@ struct Widget {
 
 impl Parse for Widget {
     fn parse(input: syn::parse::ParseStream) -> syn::Result<Self> {
-        let name = input.parse::<syn::Ident>()?.to_string();
+        let name = input.parse::<syn::Ident>()?;
 
         let mut attrs = Vec::new();
         let mut children = Vec::new();
@@ -49,7 +49,7 @@ impl Parse for Widget {
         if input.peek(syn::token::Paren) {
             syn::parenthesized!(params in input);
             while !params.is_empty() {
-                let name = params.parse::<syn::Ident>()?.to_string();
+                let name = params.parse::<syn::Ident>()?;
                 params.parse::<syn::Token![:]>()?;
                 let value = params.parse::<syn::Expr>()?;
 
