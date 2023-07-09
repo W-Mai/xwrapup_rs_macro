@@ -3,6 +3,7 @@ use quote::{quote, ToTokens};
 use syn::Expr;
 use syn::parse::{Parse, ParseStream};
 use crate::ds_node::ds_traits::DsNodeIsMe;
+use crate::ds_node::DsTree;
 
 pub struct DsAttr {
     name: Ident,
@@ -12,20 +13,12 @@ pub struct DsAttr {
 pub struct DsWidget {
     name: Ident,
 
-    parent: Ident,
-
     attrs: Vec<DsAttr>,
-    children: Vec<DsWidget>,
+    children: Vec<DsTree>,
 }
 
 impl Parse for DsWidget {
     fn parse(input: syn::parse::ParseStream) -> syn::Result<Self> {
-        DsWidget::parse_with_parent(input, Ident::new("screen", proc_macro2::Span::call_site()))
-    }
-}
-
-impl DsWidget {
-    fn parse_with_parent(input: syn::parse::ParseStream, parent: Ident) -> syn::Result<Self> {
         let name = input.parse::<syn::Ident>()?;
 
         let mut attrs = Vec::new();
@@ -50,30 +43,18 @@ impl DsWidget {
         syn::braced!(content in input);
 
         while !content.is_empty() {
-            if content.peek(syn::Ident) {
-                children.push(DsWidget::parse_with_parent(&content, name.clone())?);
-            } else if content.peek(syn::Token![if]) {
-                content.parse::<syn::Token![if]>()?;
-                let _ = content.parse::<syn::Expr>()?;
-
-                let if_content;
-                syn::braced!(if_content in content);
-
-                while !if_content.is_empty() {
-                    children.push(if_content.parse()?);
-                }
-            }
+            children.push(DsTree::parse(&content)?);
         }
 
-        Ok(DsWidget { name, parent, attrs, children })
+        Ok(DsWidget { name, attrs, children })
     }
 }
 
 impl ToTokens for DsWidget {
     fn to_tokens(&self, tokens: &mut proc_macro2::TokenStream) {
-        let DsWidget { name, parent, attrs, children } = self;
+        let DsWidget { name, attrs, children } = self;
 
-        let parent_string = parent.to_string();
+        let parent_string = "parent".to_string();
         let name_string = name.to_string();
 
         tokens.extend(quote! {
