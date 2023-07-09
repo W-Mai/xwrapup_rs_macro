@@ -3,7 +3,7 @@ use quote::{quote, ToTokens};
 use syn::Expr;
 use syn::parse::Parse;
 
-pub struct Attr {
+pub struct DsAttr {
     name: Ident,
     value: Expr,
 }
@@ -13,7 +13,7 @@ pub struct DsWidget {
 
     parent: Ident,
 
-    attrs: Vec<Attr>,
+    attrs: Vec<DsAttr>,
     children: Vec<DsWidget>,
 }
 
@@ -41,7 +41,7 @@ impl DsWidget {
                 if params.peek(syn::Token![,]) {
                     params.parse::<syn::Token![,]>()?;
                 }
-                attrs.push(Attr { name, value });
+                attrs.push(DsAttr { name, value });
             }
         }
 
@@ -93,9 +93,9 @@ impl ToTokens for DsWidget {
     }
 }
 
-impl ToTokens for Attr {
+impl ToTokens for DsAttr {
     fn to_tokens(&self, tokens: &mut proc_macro2::TokenStream) {
-        let Attr { name, value } = self;
+        let DsAttr { name, value } = self;
         let name_string = name.to_string();
         let token_string = quote! {
             println!("setAttribute({}, {})", #name_string, stringify!(#value));
