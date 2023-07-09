@@ -24,12 +24,12 @@ mod ds_node;
 use proc_macro::TokenStream;
 use quote::ToTokens;
 use syn::{parse_macro_input};
-use ds_node::DsWidget;
+use ds_node::DsTree;
 
 
 #[proc_macro]
 pub fn ui(input: TokenStream) -> TokenStream {
-    let input = parse_macro_input!(input as DsWidget);
+    let input = parse_macro_input!(input as DsTree);
 
     TokenStream::from(input.to_token_stream())
 }
