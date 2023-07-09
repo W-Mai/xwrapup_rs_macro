@@ -1,7 +1,8 @@
 use proc_macro2::Ident;
 use quote::{quote, ToTokens};
 use syn::Expr;
-use syn::parse::Parse;
+use syn::parse::{Parse, ParseStream};
+use crate::ds_node::ds_traits::DsNodeIsMe;
 
 pub struct DsAttr {
     name: Ident,
@@ -104,5 +105,12 @@ impl ToTokens for DsAttr {
         tokens.extend(quote! {
             #token_string
         });
+    }
+}
+
+impl DsNodeIsMe for DsWidget {
+    fn is_me(input: ParseStream) -> bool {
+        let lookahead = input.lookahead1();
+        lookahead.peek(syn::Ident)
     }
 }

@@ -1,5 +1,7 @@
 use quote::{quote, ToTokens};
 use syn::parse::{Parse, ParseStream};
+use syn::Token;
+use super::ds_traits::DsNodeIsMe;
 
 pub struct DsIter;
 
@@ -16,5 +18,12 @@ impl ToTokens for DsIter {
                 println!("Iter!");
             }
         });
+    }
+}
+
+impl DsNodeIsMe for DsIter {
+    fn is_me(input: ParseStream) -> bool {
+        let lookahead = input.lookahead1();
+        lookahead.peek(Token![for])
     }
 }

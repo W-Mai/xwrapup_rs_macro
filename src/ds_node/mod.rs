@@ -1,14 +1,22 @@
 pub mod ds_widget;
 mod ds_if;
 mod ds_iter;
-
+mod ds_traits;
 
 use quote::ToTokens;
 use syn::parse::{Parse, ParseStream};
 use syn::Token;
+
 pub use ds_widget::DsWidget;
-use crate::ds_node::ds_if::DsIf;
-use crate::ds_node::ds_iter::DsIter;
+use ds_if::DsIf;
+use ds_iter::DsIter;
+use ds_traits::DsNodeIsMe;
+
+pub enum DsTreeType {
+    Widget,
+    If,
+    Iter,
+}
 
 pub enum DsTree {
     Widget(Box<DsWidget>),
@@ -16,15 +24,28 @@ pub enum DsTree {
     Iter(Box<DsIter>),
 }
 
+impl DsTreeType {
+    fn what_type(input: ParseStream) -> DsTreeType {
+        if DsWidget::is_me(input) {
+            DsTreeType::Widget
+        } else if DsIf::is_me(input) {
+            DsTreeType::If
+        } else if DsIter::is_me(input) {
+            DsTreeType::Iter
+        } else {
+            panic!("Unknown type of DsTree")
+        }
+    }
+}
+
 impl Parse for DsTree {
     fn parse(input: ParseStream) -> syn::Result<Self> {
-        let lookahead = input.lookahead1();
-        if lookahead.peek(Token![if]) {
-            Ok(DsTree::If(Box::new(input.parse()?)))
-        } else if lookahead.peek(Token![for]) {
-            Ok(DsTree::Iter(Box::new(input.parse()?)))
-        } else {
-            Ok(DsTree::Widget(Box::new(input.parse()?)))
+        let tree_type = DsTreeType::what_type(input);
+
+        match tree_type {
+            DsTreeType::Widget => Ok(DsTree::Widget(Box::new(input.parse()?))),
+            DsTreeType::If => Ok(DsTree::If(Box::new(input.parse()?))),
+            DsTreeType::Iter => Ok(DsTree::Iter(Box::new(input.parse()?))),
         }
     }
 }

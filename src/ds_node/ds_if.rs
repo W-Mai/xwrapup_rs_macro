@@ -1,5 +1,8 @@
 use quote::{quote, ToTokens};
 use syn::parse::{Parse, ParseStream};
+use syn::Token;
+
+use super::ds_traits::DsNodeIsMe;
 
 pub struct DsIf;
 
@@ -16,5 +19,12 @@ impl ToTokens for DsIf {
                 println!("If!");
             }
         });
+    }
+}
+
+impl DsNodeIsMe for DsIf {
+    fn is_me(input: ParseStream) -> bool {
+        let lookahead = input.lookahead1();
+        lookahead.peek(Token![if])
     }
 }
