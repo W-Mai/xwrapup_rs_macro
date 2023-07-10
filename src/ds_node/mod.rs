@@ -2,10 +2,10 @@ pub mod ds_widget;
 mod ds_if;
 mod ds_iter;
 mod ds_traits;
+mod ds_attr;
 
 use quote::ToTokens;
 use syn::parse::{Parse, ParseStream};
-use syn::Token;
 
 pub use ds_widget::DsWidget;
 use ds_if::DsIf;

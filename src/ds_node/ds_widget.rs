@@ -2,8 +2,9 @@ use proc_macro2::Ident;
 use quote::{quote, ToTokens};
 use syn::Expr;
 use syn::parse::{Parse, ParseStream};
-use crate::ds_node::ds_traits::DsNodeIsMe;
-use crate::ds_node::DsTree;
+use super::ds_attr::DsAttrs;
+use super::ds_traits::DsNodeIsMe;
+use super::DsTree;
 
 pub struct DsAttr {
     name: Ident,
@@ -13,7 +14,7 @@ pub struct DsAttr {
 pub struct DsWidget {
     name: Ident,
 
-    attrs: Vec<DsAttr>,
+    attrs: DsAttrs,
     children: Vec<DsTree>,
 }
 
@@ -21,27 +22,13 @@ impl Parse for DsWidget {
     fn parse(input: syn::parse::ParseStream) -> syn::Result<Self> {
         let name = input.parse::<syn::Ident>()?;
 
-        let mut attrs = Vec::new();
-        let mut children = Vec::new();
 
-        let params;
-        if input.peek(syn::token::Paren) {
-            syn::parenthesized!(params in input);
-            while !params.is_empty() {
-                let name = params.parse::<syn::Ident>()?;
-                params.parse::<syn::Token![:]>()?;
-                let value = params.parse::<syn::Expr>()?;
-
-                if params.peek(syn::Token![,]) {
-                    params.parse::<syn::Token![,]>()?;
-                }
-                attrs.push(DsAttr { name, value });
-            }
-        }
+        let attrs = input.parse::<DsAttrs>()?;
 
         let content;
         syn::braced!(content in input);
 
+        let mut children = Vec::new();
         while !content.is_empty() {
             children.push(DsTree::parse(&content)?);
         }
@@ -61,7 +48,7 @@ impl ToTokens for DsWidget {
             println!("let {} = obj::new({})", #name_string, #parent_string);
         });
 
-        for attr in attrs {
+        for attr in attrs.attrs.iter() {
             let attr_name = &attr.name.to_string();
             let attr_value = &attr.value;
             tokens.extend(quote! {
@@ -72,20 +59,6 @@ impl ToTokens for DsWidget {
         for child in children {
             child.to_tokens(tokens);
         }
-    }
-}
-
-impl ToTokens for DsAttr {
-    fn to_tokens(&self, tokens: &mut proc_macro2::TokenStream) {
-        let DsAttr { name, value } = self;
-        let name_string = name.to_string();
-        let token_string = quote! {
-            println!("setAttribute({}, {})", #name_string, stringify!(#value));
-        };
-
-        tokens.extend(quote! {
-            #token_string
-        });
     }
 }
 
