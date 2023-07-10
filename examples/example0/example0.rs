@@ -4,15 +4,19 @@ static A: i32 = 20;
 
 fn main() {
     ui! {
-        div (width: 100, height: 100 + A, color: "red") {
+        :( parent: 0 )
+
+        div (
+            width: 100,
+            height: 100 + A,
+            color: "red"
+        ) {
             text (content: "hello world") {
                 picker (values: vec!["1", "2", "3"]) {
 
                 }
             }
-            button {
-
-            }
+            button {}
 
             if (a == "1") {
                 input {

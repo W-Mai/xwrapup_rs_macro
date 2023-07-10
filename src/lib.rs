@@ -2,7 +2,9 @@
 //! ```
 //! use xwrapup_rs_macro::ui;
 //!
-//! ui!(
+//! ui! {
+//!     :(parent: parent)
+//!
 //!     Widget (attr0: value0, attr1: value1, attr2: value2, ...) {
 //!         ChildWidget0 (attr0: value0, attr1: value1, attr2: value2, ...) {
 //!            ...
@@ -14,7 +16,8 @@
 //!            ...
 //!         }
 //!     }
-//! )
+//! }
+//!
 //! ```
 
 extern crate proc_macro;
