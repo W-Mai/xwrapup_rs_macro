@@ -2,12 +2,14 @@ pub mod ds_widget;
 mod ds_if;
 mod ds_iter;
 mod ds_traits;
+mod ds_root;
 mod ds_attr;
 
 use quote::ToTokens;
 use syn::parse::{Parse, ParseStream};
 
-pub use ds_widget::DsWidget;
+pub use ds_root::DsRoot;
+use ds_widget::DsWidget;
 use ds_if::DsIf;
 use ds_iter::DsIter;
 use ds_traits::DsNodeIsMe;
