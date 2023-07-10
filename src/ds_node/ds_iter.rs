@@ -6,7 +6,7 @@ use super::ds_traits::DsNodeIsMe;
 pub struct DsIter;
 
 impl Parse for DsIter {
-    fn parse(input: ParseStream) -> syn::Result<Self> {
+    fn parse(_input: ParseStream) -> syn::Result<Self> {
         Ok(DsIter)
     }
 }

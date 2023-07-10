@@ -1,25 +1,18 @@
-use proc_macro2::Ident;
 use quote::{quote, ToTokens};
-use syn::Expr;
 use syn::parse::{Parse, ParseStream};
 use super::ds_attr::DsAttrs;
 use super::ds_traits::DsNodeIsMe;
 use super::DsTree;
 
-pub struct DsAttr {
-    name: Ident,
-    value: Expr,
-}
-
 pub struct DsWidget {
-    name: Ident,
+    name: syn::Ident,
 
     attrs: DsAttrs,
     children: Vec<DsTree>,
 }
 
 impl Parse for DsWidget {
-    fn parse(input: syn::parse::ParseStream) -> syn::Result<Self> {
+    fn parse(input: ParseStream) -> syn::Result<Self> {
         let name = input.parse::<syn::Ident>()?;
 
 
