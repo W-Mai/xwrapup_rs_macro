@@ -1,5 +1,6 @@
 use quote::{quote, ToTokens};
 use syn::parse::{Parse, ParseStream};
+use crate::ds_node::{DsContext, DsNode};
 use super::ds_attr::DsAttrs;
 use super::ds_traits::DsNodeIsMe;
 use super::DsTree;
@@ -8,7 +9,7 @@ pub struct DsWidget {
     name: syn::Ident,
 
     attrs: DsAttrs,
-    children: Vec<DsTree>,
+    children: Vec<DsNode>,
 }
 
 impl Parse for DsWidget {
@@ -23,10 +24,20 @@ impl Parse for DsWidget {
 
         let mut children = Vec::new();
         while !content.is_empty() {
-            children.push(DsTree::parse(&content)?);
+            children.push(DsNode::parse(&content)?);
         }
 
         Ok(DsWidget { name, attrs, children })
+    }
+}
+
+impl DsWidget {
+    fn apply_context(&mut self, context: DsContext) {
+        for child in self.children.iter_mut() {
+            child.set_context(DsContext{
+                parent: context.parent,
+            });
+        }
     }
 }
 

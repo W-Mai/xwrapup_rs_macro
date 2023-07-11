@@ -26,6 +26,16 @@ pub enum DsTree {
     Iter(Box<DsIter>),
 }
 
+pub struct DsContext {
+    pub parent: Option<Box<&'static DsTree>>,
+}
+
+pub struct DsNode {
+    pub ctx: DsContext,
+
+    pub tree: Box<DsTree>,
+}
+
 impl DsTreeType {
     fn what_type(input: ParseStream) -> DsTreeType {
         if DsWidget::is_me(input) {
@@ -53,9 +63,43 @@ impl Parse for DsTree {
 }
 
 impl ToTokens for DsTree {
+    fn to_tokens(&self, tokens: &mut proc_macro2::TokenStream) {}
+}
+
+impl DsNode {
+    pub fn new(tree: DsTree) -> DsNode {
+        DsNode {
+            ctx: DsContext { parent: None },
+            tree: Box::new(tree),
+        }
+    }
+
+    pub fn get_context(&self) -> &DsContext {
+        &self.ctx
+    }
+
+    pub fn get_tree(&self) -> &DsTree {
+        &self.tree
+    }
+
+    pub fn set_context(&mut self, ctx: DsContext) {
+        self.ctx = ctx;
+    }
+}
+
+impl Parse for DsNode {
+    fn parse(input: ParseStream) -> syn::Result<Self> {
+        Ok(DsNode::new(input.parse()?))
+    }
+}
+
+impl ToTokens for DsNode {
     fn to_tokens(&self, tokens: &mut proc_macro2::TokenStream) {
-        match self {
-            DsTree::Widget(widget) => widget.to_tokens(tokens),
+        match self.tree.as_ref() {
+            DsTree::Widget(widget) => {
+                let widget = widget;
+                widget.to_tokens(tokens)
+            }
             DsTree::If(if_node) => if_node.to_tokens(tokens),
             DsTree::Iter(iter) => iter.to_tokens(tokens),
         }

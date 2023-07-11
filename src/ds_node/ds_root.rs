@@ -1,14 +1,14 @@
 use quote::{quote, ToTokens};
 use syn::parse::{Parse, ParseStream};
 
-use crate::ds_node::DsTree;
+use crate::ds_node::{DsNode, DsTree};
 use super::ds_attr::DsAttrs;
 
 pub struct DsRoot {
     // only support parent now
     parent: syn::Expr,
 
-    content: DsTree,
+    content: DsNode,
 }
 
 impl Parse for DsRoot {
@@ -23,7 +23,7 @@ impl Parse for DsRoot {
 
                 return Ok(DsRoot {
                     parent,
-                    content: DsTree::parse(input)?,
+                    content: DsNode::parse(input)?,
                 });
             }
         }
@@ -40,10 +40,8 @@ impl ToTokens for DsRoot {
     fn to_tokens(&self, tokens: &mut proc_macro2::TokenStream) {
         let DsRoot { parent, content } = self;
 
-        let parent_string = "parent".to_string();
-
         tokens.extend(quote! {
-            println!("let {} = {:?}", #parent_string, #parent);
+            println!("let {} = {:?}", "parent", #parent);
         });
 
         content.to_tokens(tokens);
