@@ -5,6 +5,7 @@ use crate::ds_node::DsTree;
 
 use super::ds_traits::DsNodeIsMe;
 
+#[derive(Debug)]
 pub struct DsIf;
 
 impl Parse for DsIf {
@@ -12,14 +13,6 @@ impl Parse for DsIf {
         if input.peek(syn::Token![if]) {
             input.parse::<syn::Token![if]>()?;
             let _ = input.parse::<syn::Expr>()?;
-
-            let if_content;
-            syn::braced!(if_content in input);
-
-            DsTree::parse(&if_content)?;
-            // while !if_content.is_empty() {
-            //     let _ = if_content.parse()?;
-            // }
 
             Ok(DsIf)
         } else {

@@ -1,14 +1,19 @@
+use std::any::Any;
+use std::cell::{Cell, RefCell};
+use std::rc::Rc;
 use quote::{quote, ToTokens};
 use syn::parse::{Parse, ParseStream};
+use syn::spanned::Spanned;
+use crate::ds_node::DsNode;
 use super::ds_attr::DsAttrs;
 use super::ds_traits::DsNodeIsMe;
 use super::DsTree;
 
+#[derive(Debug)]
 pub struct DsWidget {
     name: syn::Ident,
 
     attrs: DsAttrs,
-    children: Vec<DsTree>,
 }
 
 impl Parse for DsWidget {
@@ -18,23 +23,25 @@ impl Parse for DsWidget {
 
         let attrs = input.parse::<DsAttrs>()?;
 
-        let content;
-        syn::braced!(content in input);
-
-        let mut children = Vec::new();
-        while !content.is_empty() {
-            children.push(DsTree::parse(&content)?);
-        }
-
-        Ok(DsWidget { name, attrs, children })
+        Ok(DsWidget { name, attrs })
     }
 }
 
-impl ToTokens for DsWidget {
-    fn to_tokens(&self, tokens: &mut proc_macro2::TokenStream) {
-        let DsWidget { name, attrs, children } = self;
+impl DsWidget {
+    pub fn to_tokens(&self, tokens: &mut proc_macro2::TokenStream, parent: &DsNode) {
+        let DsWidget { name, attrs } = self;
 
-        let parent_string = "parent".to_string();
+
+
+        let parent_string = match parent {
+            DsNode::Widget(widget) => {
+                let widget_name = &widget.name;
+                quote! { #widget_name }
+            },
+            _ => {
+                quote! { "?" }
+            }
+        }.to_string();
         let name_string = name.to_string();
 
         tokens.extend(quote! {
@@ -47,10 +54,6 @@ impl ToTokens for DsWidget {
             tokens.extend(quote! {
                 println!("{}.set_{}({:?})", #name_string, #attr_name, #attr_value);
             });
-        }
-
-        for child in children {
-            child.to_tokens(tokens);
         }
     }
 }

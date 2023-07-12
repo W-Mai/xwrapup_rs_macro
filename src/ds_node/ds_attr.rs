@@ -1,3 +1,4 @@
+use std::fmt::Debug;
 use proc_macro2::Ident;
 use quote::{quote, ToTokens};
 use syn::Expr;
@@ -8,6 +9,14 @@ pub struct DsAttr {
     pub value: Expr,
 }
 
+impl Debug for DsAttr {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        let DsAttr { name, value } = self;
+        write!(f, "DsAttr {{ name: {}, value: {:?} }}", name, value.to_token_stream().to_string())
+    }
+}
+
+#[derive(Debug)]
 pub struct DsAttrs {
     pub attrs: Vec<DsAttr>,
 }

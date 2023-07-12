@@ -3,6 +3,7 @@ use syn::parse::{Parse, ParseStream};
 use syn::Token;
 use super::ds_traits::DsNodeIsMe;
 
+#[derive(Debug)]
 pub struct DsIter;
 
 impl Parse for DsIter {
