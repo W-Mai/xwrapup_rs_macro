@@ -3,11 +3,13 @@ use quote::{quote, ToTokens};
 use syn::Expr;
 use syn::parse::{Parse, ParseStream};
 
+#[derive(Clone)]
 pub struct DsAttr {
     pub name: Ident,
     pub value: Expr,
 }
 
+#[derive(Clone)]
 pub struct DsAttrs {
     pub attrs: Vec<DsAttr>,
 }

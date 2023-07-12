@@ -13,6 +13,7 @@ use ds_widget::DsWidget;
 use ds_if::DsIf;
 use ds_iter::DsIter;
 use ds_traits::DsNodeIsMe;
+use crate::ds_node::ds_traits::ToTokensWithContext;
 
 pub enum DsTreeType {
     Widget,
@@ -20,10 +21,12 @@ pub enum DsTreeType {
     Iter,
 }
 
+#[derive(Clone)]
 pub enum DsTree {
-    Widget(Box<DsWidget>),
-    If(Box<DsIf>),
-    Iter(Box<DsIter>),
+    Root(&'static DsRoot),
+    Widget(&'static DsWidget),
+    If(&'static DsIf),
+    Iter(&'static DsIter),
 }
 
 impl DsTreeType {
@@ -45,19 +48,26 @@ impl Parse for DsTree {
         let tree_type = DsTreeType::what_type(input);
 
         match tree_type {
-            DsTreeType::Widget => Ok(DsTree::Widget(Box::new(input.parse()?))),
-            DsTreeType::If => Ok(DsTree::If(Box::new(input.parse()?))),
-            DsTreeType::Iter => Ok(DsTree::Iter(Box::new(input.parse()?))),
+            DsTreeType::Widget => Ok(DsTree::Widget(&input.parse()?)),
+            DsTreeType::If => Ok(DsTree::If(&input.parse()?)),
+            DsTreeType::Iter => Ok(DsTree::Iter(&input.parse()?)),
         }
     }
 }
 
 impl ToTokens for DsTree {
     fn to_tokens(&self, tokens: &mut proc_macro2::TokenStream) {
+        // self.to_tokens_with_context(tokens, DsTree::Widget(DsWidget::default()));
+    }
+}
+
+impl ToTokensWithContext for DsTree {
+    fn to_tokens_with_context(&self, tokens: &mut proc_macro2::TokenStream, parent: DsTree) {
         match self {
-            DsTree::Widget(widget) => widget.to_tokens(tokens),
-            DsTree::If(if_node) => if_node.to_tokens(tokens),
-            DsTree::Iter(iter) => iter.to_tokens(tokens),
+            DsTree::Widget(widget) => widget.to_tokens_with_context(tokens, parent),
+            DsTree::If(if_node) => if_node.to_tokens_with_context(tokens, parent),
+            DsTree::Iter(iter) => iter.to_tokens_with_context(tokens, parent),
+            _ => {}
         }
     }
 }

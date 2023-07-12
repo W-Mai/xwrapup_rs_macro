@@ -1,9 +1,11 @@
 use quote::{quote, ToTokens};
 use syn::parse::{Parse, ParseStream};
+use crate::ds_node::ds_traits::ToTokensWithContext;
 use super::ds_attr::DsAttrs;
 use super::ds_traits::DsNodeIsMe;
 use super::DsTree;
 
+#[derive(Clone)]
 pub struct DsWidget {
     name: syn::Ident,
 
@@ -59,5 +61,36 @@ impl DsNodeIsMe for DsWidget {
     fn is_me(input: ParseStream) -> bool {
         let lookahead = input.lookahead1();
         lookahead.peek(syn::Ident)
+    }
+}
+
+impl ToTokensWithContext for DsWidget {
+    fn to_tokens_with_context(&self, tokens: &mut proc_macro2::TokenStream, parent: DsTree) {
+        let DsWidget { name, attrs, children } = self;
+
+        match parent {
+            DsTree::Widget(parent) => {
+                let parent_string = parent.name.to_string();
+                let name_string = name.to_string();
+
+                tokens.extend(quote! {
+                    println!("let {} = obj::new({})", #name_string, #parent_string);
+                });
+                for attr in attrs.attrs.iter() {
+                    let attr_name = &attr.name.to_string();
+                    let attr_value = &attr.value;
+                    tokens.extend(quote! {
+                        println!("{}.set_{}({:?})", #name_string, #attr_name, #attr_value);
+                    });
+                }
+            }
+            _ => {
+                panic!("Widget parent is not a widget");
+            }
+        }
+
+        for child in children {
+            child.to_tokens_with_context(tokens, DsTree::Widget(&self.clone()));
+        }
     }
 }
