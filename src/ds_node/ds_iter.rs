@@ -1,6 +1,8 @@
 use quote::{quote, ToTokens};
 use syn::parse::{Parse, ParseStream};
 use syn::Token;
+use crate::ds_node::ds_traits::DsTreeToTokens;
+use crate::ds_node::DsTree;
 use super::ds_traits::DsNodeIsMe;
 
 #[derive(Debug)]
@@ -12,8 +14,8 @@ impl Parse for DsIter {
     }
 }
 
-impl ToTokens for DsIter {
-    fn to_tokens(&self, tokens: &mut proc_macro2::TokenStream) {
+impl DsTreeToTokens for DsIter {
+    fn to_tokens(&self, tokens: &mut proc_macro2::TokenStream, parent: &DsTree) {
         tokens.extend(quote! {
             for _ in 0..10 {
                 println!("Iter!");

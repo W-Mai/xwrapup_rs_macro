@@ -1,6 +1,7 @@
 use quote::{quote, ToTokens};
-use syn::parse::{Parse, ParseStream};
+use syn::parse::{Parse, Parser, ParseStream};
 use syn::Token;
+use crate::ds_node::ds_traits::DsTreeToTokens;
 use crate::ds_node::DsTree;
 
 use super::ds_traits::DsNodeIsMe;
@@ -17,15 +18,15 @@ impl Parse for DsIf {
             Ok(DsIf)
         } else {
             Err(syn::Error::new_spanned(
-                DsIf,
+                quote!(if),
                 "Expected `if` or `else if`",
             ))
         }
     }
 }
 
-impl ToTokens for DsIf {
-    fn to_tokens(&self, tokens: &mut proc_macro2::TokenStream) {
+impl DsTreeToTokens for DsIf {
+    fn to_tokens(&self, tokens: &mut proc_macro2::TokenStream, parent: &DsTree) {
         tokens.extend(quote! {
             if true {
                 println!("If!");

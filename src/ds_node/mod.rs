@@ -16,6 +16,7 @@ use ds_widget::DsWidget;
 use ds_if::DsIf;
 use ds_iter::DsIter;
 use ds_traits::DsNodeIsMe;
+use crate::ds_node::ds_traits::DsTreeToTokens;
 
 #[derive(Debug)]
 pub enum DsNodeType {
@@ -99,7 +100,7 @@ impl Parse for DsTree {
     }
 }
 
-impl DsTree {
+impl DsTreeToTokens for DsTree {
     fn to_tokens(&self, tokens: &mut proc_macro2::TokenStream, tree: &DsTree) {
         let DsTree { parent, node, children } = self;
 
@@ -134,12 +135,12 @@ impl Parse for DsNode {
     }
 }
 
-impl DsNode {
+impl DsTreeToTokens for DsNode {
     fn to_tokens(&self, tokens: &mut proc_macro2::TokenStream, tree: &DsTree) {
         match self {
-            DsNode::Widget(widget) => widget.to_tokens(tokens, tree.get_node()),
-            DsNode::If(if_node) => if_node.to_tokens(tokens),
-            DsNode::Iter(iter) => iter.to_tokens(tokens),
+            DsNode::Widget(widget) => widget.to_tokens(tokens, tree),
+            DsNode::If(if_node) => if_node.to_tokens(tokens, tree),
+            DsNode::Iter(iter) => iter.to_tokens(tokens, tree),
             _ => {}
         }
     }
