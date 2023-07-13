@@ -1,10 +1,10 @@
 use quote::{quote, ToTokens};
 use syn::parse::{Parse, ParseStream};
+use crate::ds_node::{DsContextRef};
 use super::ds_traits::DsTreeToTokens;
 use super::DsNode;
 use super::ds_attr::DsAttrs;
 use super::ds_traits::DsNodeIsMe;
-use super::DsTree;
 
 #[derive(Debug)]
 pub struct DsWidget {
@@ -25,11 +25,12 @@ impl Parse for DsWidget {
 }
 
 impl DsTreeToTokens for DsWidget {
-    fn to_tokens(&self, tokens: &mut proc_macro2::TokenStream, parent: &DsTree) {
+    fn to_tokens(&self, tokens: &mut proc_macro2::TokenStream, ctx: DsContextRef) {
         let DsWidget { name, attrs } = self;
 
+        let parent = ctx.borrow().parent.clone().unwrap();
 
-        let parent_string = match parent.get_node() {
+        let parent_string = match parent.borrow().get_node() {
             DsNode::Widget(widget) => {
                 let widget_name = &widget.name;
                 quote! { #widget_name }

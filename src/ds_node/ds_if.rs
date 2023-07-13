@@ -3,7 +3,7 @@ use quote::{quote, ToTokens};
 use syn::parse::{Parse, ParseStream};
 use syn::Token;
 use crate::ds_node::ds_traits::DsTreeToTokens;
-use crate::ds_node::DsTree;
+use crate::ds_node::{DsContextRef};
 
 use super::ds_traits::DsNodeIsMe;
 
@@ -38,7 +38,7 @@ impl Parse for DsIf {
 }
 
 impl DsTreeToTokens for DsIf {
-    fn to_tokens(&self, tokens: &mut proc_macro2::TokenStream, _parent: &DsTree) {
+    fn to_tokens(&self, tokens: &mut proc_macro2::TokenStream, _ctx: DsContextRef) {
         let con = self.condition.to_token_stream().to_string();
 
         tokens.extend(quote! {

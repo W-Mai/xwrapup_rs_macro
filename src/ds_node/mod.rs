@@ -18,6 +18,9 @@ use ds_iter::DsIter;
 use ds_traits::DsNodeIsMe;
 use crate::ds_node::ds_traits::DsTreeToTokens;
 
+type DsTreeRef = Rc<RefCell<DsTree>>;
+type DsContextRef = Rc<RefCell<DsContext>>;
+
 #[derive(Debug)]
 pub enum DsNodeType {
     Widget,
@@ -30,6 +33,11 @@ pub enum DsNode {
     Widget(DsWidget),
     If(DsIf),
     Iter(DsIter),
+}
+
+pub struct DsContext {
+    pub parent: Option<DsTreeRef>,
+    pub tree: DsTreeRef,
 }
 
 impl Debug for DsNode {
@@ -45,15 +53,15 @@ impl Debug for DsNode {
 
 #[derive(Debug)]
 pub struct DsTree {
-    parent: Option<Rc<RefCell<DsTree>>>,
+    parent: Option<DsTreeRef>,
 
     node: DsNode,
 
-    children: Vec<Rc<RefCell<DsTree>>>,
+    children: Vec<DsTreeRef>,
 }
 
 impl DsTree {
-    pub fn set_parent(&mut self, parent: Rc<RefCell<DsTree>>) {
+    pub fn set_parent(&mut self, parent: DsTreeRef) {
         self.parent = Some(parent);
     }
 
@@ -100,13 +108,17 @@ impl Parse for DsTree {
 }
 
 impl DsTreeToTokens for DsTree {
-    fn to_tokens(&self, tokens: &mut proc_macro2::TokenStream, tree: &DsTree) {
+    fn to_tokens(&self, tokens: &mut proc_macro2::TokenStream, ctx: DsContextRef) {
         let DsTree { parent: _parent, node, children } = self;
 
-        node.to_tokens(tokens, tree);
+        node.to_tokens(tokens, ctx.clone());
 
         for child in children.iter() {
-            child.borrow().to_tokens(tokens, self);
+            let ctx = Rc::new(RefCell::new(DsContext {
+                parent: Some(ctx.borrow().tree.clone()),
+                tree: Rc::clone(&child),
+            }));
+            child.borrow().to_tokens(tokens, ctx);
             tokens.extend(quote::quote! { println!(); });
         }
     }
@@ -127,11 +139,11 @@ impl Parse for DsNode {
 }
 
 impl DsTreeToTokens for DsNode {
-    fn to_tokens(&self, tokens: &mut proc_macro2::TokenStream, tree: &DsTree) {
+    fn to_tokens(&self, tokens: &mut proc_macro2::TokenStream, ctx: DsContextRef) {
         match self {
-            DsNode::Widget(widget) => widget.to_tokens(tokens, tree),
-            DsNode::If(if_node) => if_node.to_tokens(tokens, tree),
-            DsNode::Iter(iter) => iter.to_tokens(tokens, tree),
+            DsNode::Widget(widget) => widget.to_tokens(tokens, ctx),
+            DsNode::If(if_node) => if_node.to_tokens(tokens, ctx),
+            DsNode::Iter(iter) => iter.to_tokens(tokens, ctx),
             _ => {}
         }
     }

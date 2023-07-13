@@ -4,7 +4,7 @@ use std::rc::Rc;
 use quote::{quote, ToTokens};
 use syn::parse::{Parse, ParseStream};
 
-use crate::ds_node::{DsNode, DsTree};
+use crate::ds_node::{DsContext, DsNode, DsTree};
 use crate::ds_node::ds_traits::DsTreeToTokens;
 use super::ds_attr::DsAttrs;
 
@@ -69,11 +69,23 @@ impl ToTokens for DsRoot {
             println!("let {} = {:?}", #parent_string, #parent);
         });
 
-        let tree = DsTree {
-            parent: None,
-            node: DsNode::Root(parent.clone()),
-            children: vec![],
+        let ctx = DsContext {
+            parent: Some(Rc::new(RefCell::new(
+                DsTree {
+                    parent: None,
+                    node: DsNode::Root(parent.clone()),
+                    children: vec![],
+                }
+            ))),
+            tree: Rc::new(RefCell::new(DsTree {
+                parent: None,
+                node: DsNode::Root(parent.clone()),
+                children: vec![],
+            })),
         };
-        content.to_tokens(tokens, &tree);
+
+        let ctx = Rc::new(RefCell::new(ctx));
+
+        content.to_tokens(tokens, ctx);
     }
 }

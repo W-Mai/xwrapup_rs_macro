@@ -2,7 +2,7 @@ use quote::{quote};
 use syn::parse::{Parse, ParseStream};
 use syn::Token;
 use crate::ds_node::ds_traits::DsTreeToTokens;
-use crate::ds_node::DsTree;
+use crate::ds_node::{DsContextRef};
 use super::ds_traits::DsNodeIsMe;
 
 #[derive(Debug)]
@@ -15,7 +15,7 @@ impl Parse for DsIter {
 }
 
 impl DsTreeToTokens for DsIter {
-    fn to_tokens(&self, tokens: &mut proc_macro2::TokenStream, _parent: &DsTree) {
+    fn to_tokens(&self, tokens: &mut proc_macro2::TokenStream, _ctx: DsContextRef) {
         tokens.extend(quote! {
             for _ in 0..10 {
                 println!("Iter!");
