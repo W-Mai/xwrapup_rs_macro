@@ -35,11 +35,10 @@ pub enum DsNode {
 impl Debug for DsNode {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
-            // DsNode::Root(expr) => write!(f, "Root({:?})", expr.to_token_stream().to_string()),
+            DsNode::Root(expr) => write!(f, "Root({:?})", expr.to_token_stream().to_string()),
             DsNode::Widget(widget) => write!(f, "Widget({:?})", widget),
             DsNode::If(if_node) => write!(f, "If({:?})", if_node),
             DsNode::Iter(iter) => write!(f, "Iter({:?})", iter),
-            DsNode::Root(expr) => write!(f, "Root({:?})", expr.to_token_stream().to_string()),
         }
     }
 }
@@ -102,21 +101,13 @@ impl Parse for DsTree {
 
 impl DsTreeToTokens for DsTree {
     fn to_tokens(&self, tokens: &mut proc_macro2::TokenStream, tree: &DsTree) {
-        let DsTree { parent, node, children } = self;
-
-        match parent {
-            Some(parent) => {
-                println!("parent: {:?}", parent.borrow().node);
-            }
-            None => {
-                println!("parent: None");
-            }
-        }
+        let DsTree { parent: _parent, node, children } = self;
 
         node.to_tokens(tokens, tree);
 
         for child in children.iter() {
             child.borrow().to_tokens(tokens, self);
+            tokens.extend(quote::quote! { println!(); });
         }
     }
 }

@@ -1,7 +1,6 @@
 use std::cell::RefCell;
 use std::fmt::Debug;
 use std::rc::Rc;
-use proc_macro2::TokenStream;
 use quote::{quote, ToTokens};
 use syn::parse::{Parse, ParseStream};
 

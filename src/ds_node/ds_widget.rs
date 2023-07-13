@@ -1,12 +1,7 @@
-use std::any::Any;
-use std::cell::{Cell, RefCell};
-use std::rc::Rc;
 use quote::{quote, ToTokens};
 use syn::parse::{Parse, ParseStream};
-use syn::spanned::Spanned;
-use syn::token::Trait;
-use crate::ds_node::ds_traits::DsTreeToTokens;
-use crate::ds_node::DsNode;
+use super::ds_traits::DsTreeToTokens;
+use super::DsNode;
 use super::ds_attr::DsAttrs;
 use super::ds_traits::DsNodeIsMe;
 use super::DsTree;
@@ -38,6 +33,10 @@ impl DsTreeToTokens for DsWidget {
             DsNode::Widget(widget) => {
                 let widget_name = &widget.name;
                 quote! { #widget_name }
+            }
+            DsNode::Root(root) => {
+                let root_name = &root.to_token_stream();
+                quote! { #root_name }
             }
             _ => {
                 quote! { "?" }

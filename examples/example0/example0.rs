@@ -18,7 +18,7 @@ fn main() {
             }
             button {}
 
-            if (a == "1") {
+            if a == "1" {
                 input {
 
                 }

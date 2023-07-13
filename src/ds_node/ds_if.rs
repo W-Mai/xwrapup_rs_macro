@@ -1,21 +1,33 @@
+use std::fmt::Debug;
 use quote::{quote, ToTokens};
-use syn::parse::{Parse, Parser, ParseStream};
+use syn::parse::{Parse, ParseStream};
 use syn::Token;
 use crate::ds_node::ds_traits::DsTreeToTokens;
 use crate::ds_node::DsTree;
 
 use super::ds_traits::DsNodeIsMe;
 
-#[derive(Debug)]
-pub struct DsIf;
+pub struct DsIf {
+    condition: syn::Expr,
+    // body: syn::Block,
+}
+
+impl Debug for DsIf {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "If({:?})", self.condition.to_token_stream().to_string())
+    }
+}
+
 
 impl Parse for DsIf {
     fn parse(input: ParseStream) -> syn::Result<Self> {
         if input.peek(syn::Token![if]) {
             input.parse::<syn::Token![if]>()?;
-            let _ = input.parse::<syn::Expr>()?;
+            let condition = input.parse::<syn::Expr>()?;
 
-            Ok(DsIf)
+            Ok(DsIf {
+                condition,
+            })
         } else {
             Err(syn::Error::new_spanned(
                 quote!(if),
@@ -26,11 +38,13 @@ impl Parse for DsIf {
 }
 
 impl DsTreeToTokens for DsIf {
-    fn to_tokens(&self, tokens: &mut proc_macro2::TokenStream, parent: &DsTree) {
+    fn to_tokens(&self, tokens: &mut proc_macro2::TokenStream, _parent: &DsTree) {
+        let con = self.condition.to_token_stream().to_string();
+
         tokens.extend(quote! {
-            if true {
-                println!("If!");
-            }
+            println!("if {} {{", #con);
+                println!("\tIf!");
+            println!("}}");
         });
     }
 }
