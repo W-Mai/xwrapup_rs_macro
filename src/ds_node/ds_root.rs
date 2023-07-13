@@ -2,8 +2,9 @@ use std::fmt::Debug;
 use quote::{quote, ToTokens};
 use syn::parse::{Parse, ParseStream};
 
-use crate::ds_node::{DsNode, DsTree};
+use crate::ds_node::DsTree;
 use crate::ds_node::ds_context::{DsContextRef};
+use crate::ds_node::ds_node::DsNode;
 use crate::ds_node::ds_traits::DsTreeToTokens;
 use super::ds_attr::DsAttrs;
 

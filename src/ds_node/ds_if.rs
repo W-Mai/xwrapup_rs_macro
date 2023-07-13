@@ -1,15 +1,13 @@
 use std::fmt::Debug;
 use quote::{quote, ToTokens};
 use syn::parse::{Parse, ParseStream};
-use syn::Token;
-use crate::ds_node::ds_context::DsContextRef;
-use crate::ds_node::ds_traits::DsTreeToTokens;
+use super::ds_context::DsContextRef;
+use super::ds_traits::DsTreeToTokens;
 
 use super::ds_traits::DsNodeIsMe;
 
 pub struct DsIf {
     condition: syn::Expr,
-    // body: syn::Block,
 }
 
 impl Debug for DsIf {
@@ -52,6 +50,6 @@ impl DsTreeToTokens for DsIf {
 impl DsNodeIsMe for DsIf {
     fn is_me(input: ParseStream) -> bool {
         let lookahead = input.lookahead1();
-        lookahead.peek(Token![if])
+        lookahead.peek(syn::Token![if])
     }
 }

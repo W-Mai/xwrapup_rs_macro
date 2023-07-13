@@ -2,8 +2,6 @@ use std::cell::RefCell;
 use std::rc::Rc;
 use super::DsTreeRef;
 
-// pub type DsContextRef = Rc<RefCell<DsContext>>;
-
 pub struct DsContext {
     pub parent: Option<DsTreeRef>,
     pub tree: DsTreeRef,

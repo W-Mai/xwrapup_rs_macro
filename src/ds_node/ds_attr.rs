@@ -1,12 +1,10 @@
 use std::fmt::Debug;
-use proc_macro2::Ident;
 use quote::{quote, ToTokens};
-use syn::Expr;
 use syn::parse::{Parse, ParseStream};
 
 pub struct DsAttr {
-    pub name: Ident,
-    pub value: Expr,
+    pub name: syn::Ident,
+    pub value: syn::Expr,
 }
 
 impl Debug for DsAttr {
