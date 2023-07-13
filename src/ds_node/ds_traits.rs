@@ -1,5 +1,5 @@
 use syn::parse::ParseStream;
-use crate::ds_node::{DsContextRef};
+use crate::ds_node::ds_context::DsContextRef;
 
 pub trait DsNodeIsMe {
     fn is_me(input: ParseStream) -> bool;

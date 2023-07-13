@@ -4,6 +4,7 @@ mod ds_iter;
 mod ds_traits;
 mod ds_root;
 mod ds_attr;
+mod ds_context;
 
 use std::cell::RefCell;
 use std::fmt::{Debug};
@@ -16,10 +17,8 @@ use ds_widget::DsWidget;
 use ds_if::DsIf;
 use ds_iter::DsIter;
 use ds_traits::DsNodeIsMe;
+use crate::ds_node::ds_context::{DsContext, DsContextRef};
 use crate::ds_node::ds_traits::DsTreeToTokens;
-
-type DsTreeRef = Rc<RefCell<DsTree>>;
-type DsContextRef = Rc<RefCell<DsContext>>;
 
 #[derive(Debug)]
 pub enum DsNodeType {
@@ -33,11 +32,6 @@ pub enum DsNode {
     Widget(DsWidget),
     If(DsIf),
     Iter(DsIter),
-}
-
-pub struct DsContext {
-    pub parent: Option<DsTreeRef>,
-    pub tree: DsTreeRef,
 }
 
 impl Debug for DsNode {
@@ -60,6 +54,11 @@ pub struct DsTree {
     children: Vec<DsTreeRef>,
 }
 
+#[derive(Debug)]
+pub struct DsTreeRef {
+    inner: Rc<RefCell<DsTree>>,
+}
+
 impl DsTree {
     pub fn set_parent(&mut self, parent: DsTreeRef) {
         self.parent = Some(parent);
@@ -67,6 +66,30 @@ impl DsTree {
 
     pub fn get_node(&self) -> &DsNode {
         &self.node
+    }
+
+    pub fn into_ref(self) -> DsTreeRef {
+        DsTreeRef {
+            inner: Rc::new(RefCell::new(self)),
+        }
+    }
+}
+
+impl DsTreeRef {
+    pub fn borrow(&self) -> std::cell::Ref<DsTree> {
+        self.inner.borrow()
+    }
+
+    pub fn borrow_mut(&self) -> std::cell::RefMut<DsTree> {
+        self.inner.borrow_mut()
+    }
+}
+
+impl Clone for DsTreeRef {
+    fn clone(&self) -> Self {
+        DsTreeRef {
+            inner: Rc::clone(&self.inner),
+        }
     }
 }
 
@@ -94,8 +117,8 @@ impl Parse for DsTree {
 
         let mut children = Vec::new();
         while !content.is_empty() {
-            let child = Rc::new(RefCell::new(DsTree::parse(&content)?));
-            child.borrow_mut().set_parent(Rc::clone(&child));
+            let child = DsTree::parse(&content)?.into_ref();
+            child.borrow_mut().set_parent(child.clone());
             children.push(child);
         }
 
@@ -114,10 +137,10 @@ impl DsTreeToTokens for DsTree {
         node.to_tokens(tokens, ctx.clone());
 
         for child in children.iter() {
-            let ctx = Rc::new(RefCell::new(DsContext {
+            let ctx = DsContext {
                 parent: Some(ctx.borrow().tree.clone()),
-                tree: Rc::clone(&child),
-            }));
+                tree: child.clone(),
+            }.into_ref();
             child.borrow().to_tokens(tokens, ctx);
             tokens.extend(quote::quote! { println!(); });
         }

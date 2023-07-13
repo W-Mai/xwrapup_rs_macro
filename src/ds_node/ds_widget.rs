@@ -1,6 +1,6 @@
 use quote::{quote, ToTokens};
 use syn::parse::{Parse, ParseStream};
-use crate::ds_node::{DsContextRef};
+use crate::ds_node::ds_context::DsContextRef;
 use super::ds_traits::DsTreeToTokens;
 use super::DsNode;
 use super::ds_attr::DsAttrs;

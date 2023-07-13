@@ -1,10 +1,9 @@
-use std::cell::RefCell;
 use std::fmt::Debug;
-use std::rc::Rc;
 use quote::{quote, ToTokens};
 use syn::parse::{Parse, ParseStream};
 
-use crate::ds_node::{DsContext, DsNode, DsTree};
+use crate::ds_node::{DsNode, DsTree};
+use crate::ds_node::ds_context::{DsContextRef};
 use crate::ds_node::ds_traits::DsTreeToTokens;
 use super::ds_attr::DsAttrs;
 
@@ -37,13 +36,13 @@ impl Parse for DsRoot {
                 let parent = attrs.attrs[parent_index].value.clone();
 
                 let mut content = DsTree::parse(input)?;
-                content.set_parent(Rc::new(RefCell::new(
+                content.set_parent(
                     DsTree {
                         parent: None,
                         node: DsNode::Root(parent.clone()),
                         children: vec![],
-                    }
-                )));
+                    }.into_ref()
+                );
                 return Ok(DsRoot {
                     parent,
                     content,
@@ -69,22 +68,13 @@ impl ToTokens for DsRoot {
             println!("let {} = {:?}", #parent_string, #parent);
         });
 
-        let ctx = DsContext {
-            parent: Some(Rc::new(RefCell::new(
-                DsTree {
-                    parent: None,
-                    node: DsNode::Root(parent.clone()),
-                    children: vec![],
-                }
-            ))),
-            tree: Rc::new(RefCell::new(DsTree {
-                parent: None,
-                node: DsNode::Root(parent.clone()),
-                children: vec![],
-            })),
-        };
+        let fake_tree = DsTree {
+            parent: None,
+            node: DsNode::Root(parent.clone()),
+            children: vec![],
+        }.into_ref();
 
-        let ctx = Rc::new(RefCell::new(ctx));
+        let ctx = DsContextRef::new(Some(fake_tree.clone()), fake_tree.clone());
 
         content.to_tokens(tokens, ctx);
     }
