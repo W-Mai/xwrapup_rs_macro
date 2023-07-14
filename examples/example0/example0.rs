@@ -2,9 +2,9 @@ use xwrapup_rs_macro::{ui};
 
 static A: i32 = 20;
 
-fn main() {
+fn app(parent: i32) {
     ui! {
-        :( parent: A )
+        :( parent: parent )
 
         div (
             width: 100,
@@ -25,6 +25,11 @@ fn main() {
             }
         }
     }
+}
+
+fn main() {
+    let screen = 10;
+    app(screen);
 
     return;
 }
