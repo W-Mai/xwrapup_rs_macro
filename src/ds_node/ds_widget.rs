@@ -1,6 +1,7 @@
 use quote::{quote, ToTokens};
 use syn::parse::{Parse, ParseStream};
 use crate::ds_node::ds_context::DsContextRef;
+use crate::ds_node::ds_custom_token::is_custom_keyword;
 use super::ds_traits::DsTreeToTokens;
 use super::ds_node::DsNode;
 use super::ds_attr::DsAttrs;
@@ -16,7 +17,6 @@ pub struct DsWidget {
 impl Parse for DsWidget {
     fn parse(input: ParseStream) -> syn::Result<Self> {
         let name = input.parse::<syn::Ident>()?;
-
 
         let attrs = input.parse::<DsAttrs>()?;
 
@@ -61,7 +61,6 @@ impl DsTreeToTokens for DsWidget {
 
 impl DsNodeIsMe for DsWidget {
     fn is_me(input: ParseStream) -> bool {
-        let lookahead = input.lookahead1();
-        lookahead.peek(syn::Ident)
+        input.peek(syn::Ident) && !is_custom_keyword(input)
     }
 }

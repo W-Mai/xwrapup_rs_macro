@@ -6,6 +6,7 @@ mod ds_root;
 mod ds_attr;
 mod ds_context;
 mod ds_node;
+mod ds_custom_token;
 
 use std::cell::RefCell;
 use std::fmt::Debug;

@@ -49,7 +49,6 @@ impl DsTreeToTokens for DsIf {
 
 impl DsNodeIsMe for DsIf {
     fn is_me(input: ParseStream) -> bool {
-        let lookahead = input.lookahead1();
-        lookahead.peek(syn::Token![if])
+        input.peek(syn::Token![if])
     }
 }

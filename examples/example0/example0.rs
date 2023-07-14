@@ -18,7 +18,10 @@ fn app(parent: i32) {
 
                 }
             }
-            button {}
+
+            walk range(20) with i {
+                button (text: 6) {}
+            }
 
             if a == "1" {
                 input {
