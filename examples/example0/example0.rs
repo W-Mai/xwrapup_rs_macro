@@ -4,7 +4,9 @@ static A: i32 = 20;
 
 fn app(parent: i32) {
     ui! {
-        :( parent: parent )
+        :(
+            parent: parent
+        :)
 
         div (
             width: 100,

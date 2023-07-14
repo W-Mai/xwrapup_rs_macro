@@ -3,10 +3,10 @@ use quote::{quote, ToTokens};
 use syn::parse::{Parse, ParseStream};
 
 use crate::ds_node::DsTree;
-use crate::ds_node::ds_context::{DsContextRef};
+use crate::ds_node::ds_context::DsContextRef;
 use crate::ds_node::ds_node::DsNode;
+use crate::ds_node::ds_attr::DsAttr;
 use crate::ds_node::ds_traits::DsTreeToTokens;
-use super::ds_attr::DsAttrs;
 
 pub struct DsRoot {
     // only support parent now
@@ -31,10 +31,19 @@ impl Parse for DsRoot {
         if input.peek(syn::Token![:]) {
             input.parse::<syn::Token![:]>()?;
 
-            let attrs = input.parse::<DsAttrs>()?;
-            let mut iter = attrs.attrs.iter();
+            let mut attrs = Vec::<DsAttr>::new();
+            let params;
+            syn::parenthesized!(params in input);
+            while !params.is_empty() {
+                attrs.push(params.parse()?);
+                if params.peek(syn::Token![:]) {
+                    params.parse::<syn::Token![:]>()?;
+                }
+            }
+
+            let mut iter = attrs.iter();
             if let Some(parent_index) = iter.position(|attr| attr.name == "parent") {
-                let parent = attrs.attrs[parent_index].value.clone();
+                let parent = attrs[parent_index].value.clone();
 
                 let mut content = DsTree::parse(input)?;
                 content.set_parent(
