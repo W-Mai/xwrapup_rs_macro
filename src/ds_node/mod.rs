@@ -61,7 +61,7 @@ impl DsTreeRef {
 impl Clone for DsTreeRef {
     fn clone(&self) -> Self {
         DsTreeRef {
-            inner: Rc::clone(&self.inner),
+            inner: self.inner.clone(),
         }
     }
 }
@@ -91,17 +91,13 @@ impl Parse for DsTree {
 
 impl DsTreeToTokens for DsTree {
     fn to_tokens(&self, tokens: &mut proc_macro2::TokenStream, ctx: DsContextRef) {
-        let DsTree { parent: _parent, node, children } = self;
+        let DsTree { parent, node, children: _children } = self;
 
-        node.to_tokens(tokens, ctx.clone());
+        let ctx = DsContext {
+            parent: parent.clone(),
+            tree: ctx.borrow().tree.clone(),
+        }.into_ref();
 
-        for child in children.iter() {
-            let ctx = DsContext {
-                parent: Some(ctx.borrow().tree.clone()),
-                tree: child.clone(),
-            }.into_ref();
-            child.borrow().to_tokens(tokens, ctx);
-            tokens.extend(quote::quote! { println!(); });
-        }
+        node.to_tokens(tokens, ctx);
     }
 }

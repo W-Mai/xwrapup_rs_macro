@@ -1,6 +1,6 @@
 use quote::{quote, ToTokens};
 use syn::parse::{Parse, ParseStream};
-use crate::ds_node::ds_context::DsContextRef;
+use crate::ds_node::ds_context::{DsContext, DsContextRef};
 use crate::ds_node::ds_custom_token::is_custom_keyword;
 use super::ds_traits::DsTreeToTokens;
 use super::ds_node::DsNode;
@@ -55,6 +55,17 @@ impl DsTreeToTokens for DsWidget {
             tokens.extend(quote! {
                 println!("{}.set_{}({:?})", #name_string, #attr_name, #attr_value);
             });
+        }
+
+        let tree = ctx.borrow().tree.clone();
+        let children = &tree.borrow().children;
+
+        for child in children.iter() {
+            let ctx = DsContext {
+                parent: Some(ctx.borrow().tree.clone()),
+                tree: child.clone(),
+            }.into_ref();
+            child.borrow().to_tokens(tokens, ctx);
         }
     }
 }

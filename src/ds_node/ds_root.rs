@@ -1,8 +1,9 @@
 use std::fmt::Debug;
 use quote::{quote, ToTokens};
 use syn::parse::{Parse, ParseStream};
+use syn::spanned::Spanned;
 
-use crate::ds_node::DsTree;
+use crate::ds_node::{DsTree, DsTreeRef};
 use crate::ds_node::ds_context::DsContextRef;
 use crate::ds_node::ds_node::DsNode;
 use crate::ds_node::ds_attr::DsAttr;
@@ -12,7 +13,7 @@ pub struct DsRoot {
     // only support parent now
     parent: syn::Expr,
 
-    content: DsTree,
+    content: DsTreeRef,
 }
 
 impl Debug for DsRoot {
@@ -20,7 +21,7 @@ impl Debug for DsRoot {
         let DsRoot { parent, content } = self;
 
         f.debug_struct("DsRoot")
-            .field("parent", &parent.into_token_stream().to_string())
+            .field("parent", &parent.span().unwrap())
             .field("content", content)
             .finish()
     }
@@ -45,8 +46,8 @@ impl Parse for DsRoot {
             if let Some(parent_index) = iter.position(|attr| attr.name == "parent") {
                 let parent = attrs[parent_index].value.clone();
 
-                let mut content = DsTree::parse(input)?;
-                content.set_parent(
+                let content = DsTree::parse(input)?.into_ref();
+                content.borrow_mut().set_parent(
                     DsTree {
                         parent: None,
                         node: DsNode::Root(parent.clone()),
@@ -78,14 +79,8 @@ impl ToTokens for DsRoot {
             println!("let {} = {:?}", #parent_string, #parent);
         });
 
-        let fake_tree = DsTree {
-            parent: None,
-            node: DsNode::Root(parent.clone()),
-            children: vec![],
-        }.into_ref();
+        let ctx = DsContextRef::new(content.borrow().parent.clone(), content.clone());
 
-        let ctx = DsContextRef::new(Some(fake_tree.clone()), fake_tree.clone());
-
-        content.to_tokens(tokens, ctx);
+        content.borrow().to_tokens(tokens, ctx);
     }
 }

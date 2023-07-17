@@ -1,7 +1,7 @@
 use std::fmt::Debug;
 use quote::{quote, ToTokens};
 use syn::parse::{Parse, ParseStream};
-use crate::ds_node::ds_context::DsContextRef;
+use crate::ds_node::ds_context::{DsContext, DsContextRef};
 use crate::ds_node::ds_custom_token;
 use crate::ds_node::ds_traits::DsTreeToTokens;
 use super::ds_traits::DsNodeIsMe;
@@ -34,13 +34,27 @@ impl Parse for DsIter {
 }
 
 impl DsTreeToTokens for DsIter {
-    fn to_tokens(&self, tokens: &mut proc_macro2::TokenStream, _ctx: DsContextRef) {
+    fn to_tokens(&self, tokens: &mut proc_macro2::TokenStream, ctx: DsContextRef) {
         let iterable = self.iterable.to_token_stream().to_string();
         let variable = &self.variable.to_token_stream().to_string();
 
         tokens.extend(quote! {
             println!("for {} in {} {{", #variable, #iterable);
-                println!("\tIter!");
+        });
+
+        let tree = ctx.borrow().tree.clone();
+        let children = &tree.borrow().children;
+
+        for child in children.iter() {
+            println!("child: {:?}", child.borrow().node);
+            let ctx = DsContext {
+                parent: Some(ctx.borrow().tree.clone()),
+                tree: child.clone(),
+            }.into_ref();
+            child.borrow().to_tokens(tokens, ctx);
+        }
+
+        tokens.extend(quote! {
             println!("}}");
         });
     }
