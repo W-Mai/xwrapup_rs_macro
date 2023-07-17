@@ -26,7 +26,7 @@ mod ds_node;
 
 use proc_macro::TokenStream;
 use quote::ToTokens;
-use syn::{parse_macro_input};
+use syn::parse_macro_input;
 use ds_node::DsRoot;
 
 

@@ -1,4 +1,4 @@
-use xwrapup_rs_macro::{ui};
+use xwrapup_rs_macro::ui;
 
 static A: i32 = 20;
 

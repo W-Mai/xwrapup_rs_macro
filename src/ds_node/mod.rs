@@ -17,19 +17,15 @@ pub use ds_root::DsRoot;
 use ds_context::{DsContext, DsContextRef};
 use ds_node::DsNode;
 use ds_traits::DsTreeToTokens;
+use macro_utils::DsRef;
 
-#[derive(Debug)]
+#[derive(Debug, DsRef)]
 pub struct DsTree {
     parent: Option<DsTreeRef>,
 
     node: DsNode,
 
     children: Vec<DsTreeRef>,
-}
-
-#[derive(Debug)]
-pub struct DsTreeRef {
-    inner: Rc<RefCell<DsTree>>,
 }
 
 impl DsTree {
@@ -40,32 +36,7 @@ impl DsTree {
     pub fn get_node(&self) -> &DsNode {
         &self.node
     }
-
-    pub fn into_ref(self) -> DsTreeRef {
-        DsTreeRef {
-            inner: Rc::new(RefCell::new(self)),
-        }
-    }
 }
-
-impl DsTreeRef {
-    pub fn borrow(&self) -> std::cell::Ref<DsTree> {
-        self.inner.borrow()
-    }
-
-    pub fn borrow_mut(&self) -> std::cell::RefMut<DsTree> {
-        self.inner.borrow_mut()
-    }
-}
-
-impl Clone for DsTreeRef {
-    fn clone(&self) -> Self {
-        DsTreeRef {
-            inner: self.inner.clone(),
-        }
-    }
-}
-
 
 impl Parse for DsTree {
     fn parse(input: ParseStream) -> syn::Result<Self> {
