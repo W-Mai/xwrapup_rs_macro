@@ -14,6 +14,16 @@ pub struct DsWidget {
     attrs: DsAttrs,
 }
 
+impl DsWidget {
+    pub fn get_name(&self) -> &syn::Ident {
+        &self.name
+    }
+
+    pub fn get_attrs(&self) -> &DsAttrs {
+        &self.attrs
+    }
+}
+
 impl Parse for DsWidget {
     fn parse(input: ParseStream) -> syn::Result<Self> {
         let name = input.parse::<syn::Ident>()?;

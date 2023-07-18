@@ -23,6 +23,7 @@
 extern crate proc_macro;
 
 mod ds_node;
+mod ui_code_gen;
 
 use proc_macro::TokenStream;
 use quote::ToTokens;

@@ -1,12 +1,12 @@
 pub mod ds_widget;
-mod ds_if;
-mod ds_iter;
-mod ds_traits;
-mod ds_root;
-mod ds_attr;
-mod ds_context;
-mod ds_node;
-mod ds_custom_token;
+pub mod ds_context;
+pub mod ds_if;
+pub mod ds_iter;
+pub mod ds_traits;
+pub mod ds_root;
+pub mod ds_attr;
+pub mod ds_node;
+pub mod ds_custom_token;
 
 use std::cell::RefCell;
 use std::fmt::Debug;
