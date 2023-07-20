@@ -4,6 +4,14 @@ use proc_macro::TokenStream;
 use quote::{format_ident, quote};
 use syn::{parse_macro_input, DeriveInput};
 
+#[proc_macro]
+pub fn ui(input: TokenStream) -> TokenStream {
+    let input = parse_macro_input!(input as DsRoot);
+
+    TokenStream::from(input.to_token_stream())
+}
+
+
 #[proc_macro_derive(DsRef)]
 pub fn ds_ref_derive_macro(input: TokenStream) -> TokenStream {
     let input = parse_macro_input!(input as DeriveInput);
