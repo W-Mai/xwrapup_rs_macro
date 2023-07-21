@@ -12,4 +12,4 @@ proc-macro2 = "1.0.64"
 syn = { version = "2.0.25" }
 
 # self dependence
-proc_macros_inner = { path = "src/proc_macros_inner" }
+proc_macros = { path = "../proc_macros" }

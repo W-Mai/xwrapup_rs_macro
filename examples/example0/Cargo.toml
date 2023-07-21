@@ -4,4 +4,4 @@ version = "0.1.0"
 authors = ["Bengin X"]
 
 [dependencies]
-proc_macros = { path = "../../crates/proc_macros" }
+xwrapup_rs_macro = { path = "../../crates/xwrapup_rs_macro" }

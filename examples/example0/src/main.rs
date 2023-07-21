@@ -1,6 +1,6 @@
-extern crate proc_macros;
+extern crate xwrapup_rs_macro;
 
-use proc_macros::ui;
+use xwrapup_rs_macro::ui;
 
 static A: i32 = 20;
 

@@ -20,7 +20,6 @@
 //!
 //! ```
 
-pub mod ds_node;
-mod ui_code_gen;
+extern crate proc_macros;
 
-pub use proc_macros_inner::DsRef;
+pub use proc_macros::ui;
