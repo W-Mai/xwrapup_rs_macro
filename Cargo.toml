@@ -1,24 +1,10 @@
-[package]
-name = "xwrapup_rs_macro"
-version = "0.0.1"
-authors = ["W-Mai <1341398182@qq.com>"]
-description = "xWrapup Rust Macro"
-keywords = ["template", "proc_macro", "procmacro"]
-edition = "2018"
+[workspace]
+members = [
+    "crates/*",
+    "examples/*",
+]
 
-[[example]]
-name = "example0"
-path = "examples/example0/example0.rs"
+default-members = [
+    "crates/*",
+]
 
-
-
-[lib]
-#proc-macro = true
-
-[dependencies]
-quote = "1.0.29"
-proc-macro2 = "1.0.64"
-syn = { version = "2.0.25" }
-
-# self dependence
-macro_utils = { path = "src/macro_utils" }

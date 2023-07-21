@@ -1,5 +1,5 @@
 [package]
-name = "ds_node"
+name = "proc_macros_inner"
 version = "0.1.0"
 edition = "2021"
 

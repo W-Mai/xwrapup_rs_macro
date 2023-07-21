@@ -17,7 +17,7 @@ pub use ds_root::DsRoot;
 use ds_context::{DsContext, DsContextRef};
 use ds_node::DsNode;
 use ds_traits::DsTreeToTokens;
-use macro_utils::DsRef;
+use proc_macros_inner::DsRef;
 
 #[derive(Debug, DsRef)]
 pub struct DsTree {

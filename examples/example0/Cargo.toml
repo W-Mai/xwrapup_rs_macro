@@ -1,0 +1,7 @@
+[package]
+name = "example0"
+version = "0.1.0"
+authors = ["Bengin X"]
+
+[dependencies]
+proc_macros = { path = "../../crates/proc_macros" }

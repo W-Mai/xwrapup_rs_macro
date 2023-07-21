@@ -20,22 +20,7 @@
 //!
 //! ```
 
-// extern crate proc_macro;
-
 pub mod ds_node;
 mod ui_code_gen;
 
-pub use macro_utils::DsRef;
-
-// use proc_macro::TokenStream;
-use quote::ToTokens;
-use syn::parse_macro_input;
-use ds_node::DsRoot;
-
-
-// #[proc_macro]
-// pub fn ui(input: TokenStream) -> TokenStream {
-//     let input = parse_macro_input!(input as DsRoot);
-//
-//     TokenStream::from(input.to_token_stream())
-// }
+pub use proc_macros_inner::DsRef;

@@ -1,6 +1,6 @@
 use std::cell::RefCell;
 use std::rc::Rc;
-use macro_utils::DsRef;
+use proc_macros_inner::DsRef;
 use super::DsTreeRef;
 
 #[derive(Debug, DsRef)]
