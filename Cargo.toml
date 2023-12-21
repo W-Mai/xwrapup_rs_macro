@@ -8,3 +8,4 @@ default-members = [
     "crates/*",
 ]
 
+resolver = "2"
