@@ -9,7 +9,7 @@ pub mod ds_node;
 pub mod ds_custom_token;
 
 use std::cell::RefCell;
-use std::fmt::Debug;
+use std::fmt::{Debug, Formatter};
 use std::rc::Rc;
 use syn::parse::{Parse, ParseStream};
 
@@ -19,7 +19,7 @@ use ds_node::DsNode;
 use ds_traits::DsTreeToTokens;
 use proc_macros_inner::DsRef;
 
-#[derive(Debug, DsRef)]
+#[derive(DsRef)]
 pub struct DsTree {
     parent: Option<DsTreeRef>,
 
@@ -35,6 +35,23 @@ impl DsTree {
 
     pub fn get_node(&self) -> &DsNode {
         &self.node
+    }
+}
+
+impl Debug for DsTree {
+    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
+        let parent = match &self.parent {
+            None => { "None" }
+            Some(tree) => {
+                match tree.borrow().node {
+                    DsNode::Root(_) => { "Root" }
+                    DsNode::Widget(_) => { "Widget" }
+                    DsNode::If(_) => { "If" }
+                    DsNode::Iter(_) => { "Iter" }
+                }
+            }
+        };
+        f.write_fmt(format_args!("{{ parent: {}, node: {:?}, children: {:?} }}", parent, self.node, self.children))
     }
 }
 
