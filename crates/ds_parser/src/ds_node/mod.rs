@@ -8,9 +8,7 @@ pub mod ds_attr;
 pub mod ds_node;
 pub mod ds_custom_token;
 
-use std::cell::RefCell;
 use std::fmt::{Debug, Formatter};
-use std::rc::Rc;
 use syn::parse::{Parse, ParseStream};
 
 pub use ds_root::DsRoot;

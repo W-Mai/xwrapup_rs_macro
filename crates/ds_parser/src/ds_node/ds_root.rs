@@ -1,4 +1,5 @@
 use std::fmt::Debug;
+use std::ops::Deref;
 use quote::{quote, ToTokens};
 use syn::parse::{Parse, ParseStream};
 use syn::spanned::Spanned;
@@ -14,6 +15,20 @@ pub struct DsRoot {
     parent: syn::Expr,
 
     content: DsTreeRef,
+}
+
+impl DsRoot {
+    pub fn get_parent(&self) -> syn::Expr {
+        self.parent.clone()
+    }
+}
+
+impl Deref for DsRoot {
+    type Target = DsTreeRef;
+
+    fn deref(&self) -> &Self::Target {
+        &self.content
+    }
 }
 
 impl Debug for DsRoot {
@@ -80,7 +95,6 @@ impl ToTokens for DsRoot {
         });
 
         let ctx = DsContextRef::new(content.borrow().parent.clone(), content.clone());
-
         content.borrow().to_tokens(tokens, ctx);
     }
 }
