@@ -554,6 +554,36 @@ mod tests {
     }
 
     #[test]
+    fn parse_walk_by_key() {
+        let tokens = quote! {
+            walk $items with item by item.id {
+                a (height: 10) {}
+            }
+        };
+        let tree: DsTree = syn::parse2(tokens).unwrap();
+        match tree.get_node() {
+            DsNode::Iter(n) => {
+                assert!(n.get_key().is_some(), "by clause captures a key expr");
+            }
+            _ => panic!("expected Iter node"),
+        }
+    }
+
+    #[test]
+    fn parse_walk_without_by_has_no_key() {
+        let tokens = quote! {
+            walk items with item {
+                a (height: 10) {}
+            }
+        };
+        let tree: DsTree = syn::parse2(tokens).unwrap();
+        match tree.get_node() {
+            DsNode::Iter(n) => assert!(n.get_key().is_none(), "no by clause -> no key"),
+            _ => panic!("expected Iter node"),
+        }
+    }
+
+    #[test]
     fn parse_reactive_match() {
         let tokens = quote! {
             match $state {

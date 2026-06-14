@@ -143,6 +143,10 @@ fn format_tree(tree: &DsTreeRef, indent: &str, out: &mut String) {
             out.push_str(&fmt_expr(iter_node.get_iterable()));
             out.push_str(" with ");
             out.push_str(&iter_node.get_variable().to_string());
+            if let Some(key) = iter_node.get_key() {
+                out.push_str(" by ");
+                out.push_str(&fmt_expr(key));
+            }
             out.push_str(" {\n");
             for child in borrowed.get_children() {
                 format_tree(child, &child_indent, out);
@@ -577,6 +581,17 @@ world: world
         assert!(
             out.contains("walk ${"),
             "walk ${{block}} keeps $ with no gap, got:\n{out}"
+        );
+    }
+
+    #[test]
+    fn walk_by_key_roundtrips() {
+        let out = fmt(&format!(
+            "{CTX}walk $items with item by item.id {{ Text (\"x\") {{}} }}\n"
+        ));
+        assert!(
+            out.contains("with item by item.id"),
+            "walk keeps the `by <key>` clause, got:\n{out}"
         );
     }
 }

@@ -29,7 +29,7 @@ pub fn reactive_attr_or_expr(input: ParseStream) -> syn::Result<(syn::Expr, bool
     Ok((input.parse::<syn::Expr>()?, false))
 }
 
-fn collect_until_brace(input: ParseStream) -> syn::Result<syn::Expr> {
+pub fn collect_until_brace(input: ParseStream) -> syn::Result<syn::Expr> {
     let mut tokens = proc_macro2::TokenStream::new();
     while !input.is_empty() && !input.peek(syn::token::Brace) {
         let tt: proc_macro2::TokenTree = input.parse()?;

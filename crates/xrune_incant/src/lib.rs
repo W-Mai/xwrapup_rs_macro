@@ -102,6 +102,7 @@ impl DsRune for DefaultRune {
         iterable: &syn::Expr,
         variable: &syn::Ident,
         _reactive: bool,
+        _key: Option<&syn::Expr>,
         children: &[xrune_nexus::ds_node::DsTreeRef],
     ) {
         use quote::quote;

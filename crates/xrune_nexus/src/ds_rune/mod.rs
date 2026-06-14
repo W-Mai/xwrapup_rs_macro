@@ -39,6 +39,7 @@ pub trait DsRune {
         iterable: &syn::Expr,
         variable: &syn::Ident,
         reactive: bool,
+        key: Option<&syn::Expr>,
         children: &[DsTreeRef],
     );
 

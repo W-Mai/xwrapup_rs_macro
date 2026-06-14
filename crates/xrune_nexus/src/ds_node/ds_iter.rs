@@ -8,6 +8,7 @@ pub struct DsIter {
     iterable: syn::Expr,
     variable: syn::Ident,
     reactive: bool,
+    key: Option<Box<syn::Expr>>,
 }
 
 impl DsIter {
@@ -21,6 +22,10 @@ impl DsIter {
 
     pub fn is_reactive(&self) -> bool {
         self.reactive
+    }
+
+    pub fn get_key(&self) -> Option<&syn::Expr> {
+        self.key.as_deref()
     }
 }
 
@@ -41,10 +46,17 @@ impl Parse for DsIter {
         let (iterable, reactive) = super::reactive::reactive_attr_or_expr(input)?;
         input.parse::<ds_custom_token::with>()?;
         let variable = input.parse::<syn::Ident>()?;
+        let key = if input.peek(ds_custom_token::by) {
+            input.parse::<ds_custom_token::by>()?;
+            Some(Box::new(super::reactive::collect_until_brace(input)?))
+        } else {
+            None
+        };
         Ok(DsIter {
             iterable,
             variable,
             reactive,
+            key,
         })
     }
 }

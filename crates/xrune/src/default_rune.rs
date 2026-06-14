@@ -108,6 +108,7 @@ impl DsRune for DefaultRune {
         iterable: &syn::Expr,
         variable: &syn::Ident,
         _reactive: bool,
+        _key: Option<&syn::Expr>,
         children: &[DsTreeRef],
     ) {
         let iterable_str = quote!(#iterable).to_string();

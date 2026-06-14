@@ -34,6 +34,7 @@ pub fn decipher(tree: &DsTreeRef, rune: &mut dyn DsRune) {
                 iter_node.get_iterable(),
                 iter_node.get_variable(),
                 iter_node.is_reactive(),
+                iter_node.get_key(),
                 borrowed.get_children(),
             );
         }
