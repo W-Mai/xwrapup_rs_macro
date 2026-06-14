@@ -81,7 +81,7 @@ fn format_tree(tree: &DsTreeRef, indent: &str, out: &mut String) {
                         if i > 0 {
                             out.push_str(", ");
                         }
-                        out.push_str(&fmt_expr(a));
+                        out.push_str(&fmt_expr_indented(a, indent));
                     }
                     out.push(')');
                 }
@@ -119,7 +119,7 @@ fn format_tree(tree: &DsTreeRef, indent: &str, out: &mut String) {
             if if_node.is_reactive() {
                 out.push('$');
             }
-            out.push_str(&fmt_expr(if_node.get_condition()));
+            out.push_str(&fmt_expr_indented(if_node.get_condition(), indent));
             out.push_str(" {\n");
             for child in borrowed.get_children() {
                 format_tree(child, &child_indent, out);
@@ -140,12 +140,12 @@ fn format_tree(tree: &DsTreeRef, indent: &str, out: &mut String) {
             if iter_node.is_reactive() {
                 out.push('$');
             }
-            out.push_str(&fmt_expr(iter_node.get_iterable()));
+            out.push_str(&fmt_expr_indented(iter_node.get_iterable(), indent));
             out.push_str(" with ");
             out.push_str(&iter_node.get_variable().to_string());
             if let Some(key) = iter_node.get_key() {
                 out.push_str(" by ");
-                out.push_str(&fmt_expr(key));
+                out.push_str(&fmt_expr_indented(key, indent));
             }
             out.push_str(" {\n");
             for child in borrowed.get_children() {
@@ -171,7 +171,7 @@ fn format_tree(tree: &DsTreeRef, indent: &str, out: &mut String) {
             if match_node.is_reactive() {
                 out.push('$');
             }
-            out.push_str(&fmt_expr(match_node.get_scrutinee()));
+            out.push_str(&fmt_expr_indented(match_node.get_scrutinee(), indent));
             out.push_str(" {\n");
             let arm_indent = format!("{child_indent}    ");
             for arm in match_node.get_arms() {
@@ -271,7 +271,7 @@ fn format_else_branch(branch: Option<&DsTreeRef>, indent: &str, out: &mut String
             if if_node.is_reactive() {
                 out.push('$');
             }
-            out.push_str(&fmt_expr(if_node.get_condition()));
+            out.push_str(&fmt_expr_indented(if_node.get_condition(), indent));
             out.push_str(" {\n");
             for child in b.get_children() {
                 format_tree(child, &child_indent, out);
@@ -297,45 +297,77 @@ fn fmt_expr(expr: &syn::Expr) -> String {
 
 /// Format a syn::Expr with re-indentation for multi-line output
 fn fmt_expr_indented(expr: &syn::Expr, indent: &str) -> String {
-    // A `${ block }` value: format the block directly so its body sits one
-    // level under the `{`, instead of inheriting prettyplease's const-wrapper
-    // indentation through the generic path below.
+    // A `${ block }` value. A single-statement block whose content fits on one
+    // line stays inline (`{ expr }`); anything longer formats as a real block
+    // so its body sits one level under the `{`.
     if let syn::Expr::Block(b) = expr {
+        if let [syn::Stmt::Expr(inner, None)] = b.block.stmts.as_slice() {
+            let one_line = fmt_expr_indented(inner, indent);
+            if !one_line.contains('\n') {
+                return format!("{{ {one_line} }}");
+            }
+        }
         return fmt_block(&b.block, indent);
     }
 
     let tokens = quote::quote!(#expr);
-    let code = format!("const _: () = {{ let _ = {tokens}; }};");
+    // Wrap in a fn so prettyplease indents the expression's continuation lines
+    // by a clean 4 spaces per level (the `const _ = { let _ = … }` wrapper adds
+    // an extra level, which over-indents nested struct/call literals).
+    let code = format!("fn __xrune_fmt_expr_wrapper() {{ {tokens} }}");
     let Ok(file) = syn::parse_str::<syn::File>(&code) else {
         return tokens.to_string();
     };
     let formatted = prettyplease::unparse(&file);
-    let Some(start) = formatted.find("let _ = ") else {
+    let Some(open) = formatted.find('{') else {
         return tokens.to_string();
     };
-    let start = start + 8;
-    let Some(end) = formatted[start..].find(";\n") else {
+    let Some(close) = formatted.rfind('}') else {
         return tokens.to_string();
     };
-    let result = formatted[start..start + end].trim().to_string();
-
-    // shift right by `indent`, not flatten — prettyplease already nests correctly.
-    if result.contains('\n') && !indent.is_empty() {
-        result
-            .lines()
-            .enumerate()
-            .map(|(i, line)| {
-                if i == 0 || line.is_empty() {
-                    line.to_string()
-                } else {
-                    format!("{indent}{line}")
-                }
-            })
-            .collect::<Vec<_>>()
-            .join("\n")
-    } else {
-        result
+    if close <= open {
+        return tokens.to_string();
     }
+    let inner = formatted[open + 1..close].trim_matches('\n');
+    let lines: Vec<&str> = inner.lines().map(|l| l.trim_end()).collect();
+
+    if lines.len() <= 1 || indent.is_empty() {
+        return lines.join("\n").trim_start().to_string();
+    }
+
+    // Line 0 stays bare — the caller already wrote `indent` at the insertion
+    // point (e.g. after `text: ${` or `walk `).
+    rebase(&lines, indent, true)
+}
+
+/// Re-indent prettyplease body lines: shift the whole block to `indent` while
+/// keeping prettyplease's exact relative nesting (which is NOT a uniform 4-step
+/// ladder). Subtracts the minimum lead, then re-prefixes with `indent`.
+/// `line0_bare`: line 0 gets no prefix (caller pre-wrote indent) when true.
+fn rebase(lines: &[&str], indent: &str, line0_bare: bool) -> String {
+    let base = lines
+        .iter()
+        .filter(|l| !l.is_empty())
+        .map(|l| l.len() - l.trim_start().len())
+        .min()
+        .unwrap_or(0);
+    lines
+        .iter()
+        .enumerate()
+        .map(|(i, line)| {
+            if line.is_empty() {
+                return String::new();
+            }
+            let lead = line.len() - line.trim_start().len();
+            let body = &line[lead..];
+            if i == 0 && line0_bare {
+                body.to_string()
+            } else {
+                format!("{indent}{}{body}", " ".repeat(lead - base))
+            }
+        })
+        .collect::<Vec<_>>()
+        .join("\n")
 }
 
 fn fmt_block(block: &syn::Block, indent: &str) -> String {
@@ -356,27 +388,9 @@ fn fmt_block(block: &syn::Block, indent: &str) -> String {
     }
     let inner = formatted[open + 1..close].trim_matches('\n');
     let lines: Vec<&str> = inner.lines().map(|l| l.trim_end()).collect();
-    let drop_outer = lines.iter().all(|l| l.is_empty() || l.starts_with("    "));
-
     let body_indent = format!("{indent}    ");
-    let mut out = String::from("{\n");
-    for line in &lines {
-        if line.is_empty() {
-            out.push('\n');
-            continue;
-        }
-        let stripped: &str = if drop_outer && line.len() >= 4 {
-            &line[4..]
-        } else {
-            line
-        };
-        out.push_str(&body_indent);
-        out.push_str(stripped);
-        out.push('\n');
-    }
-    out.push_str(indent);
-    out.push('}');
-    out
+    let body = rebase(&lines, &body_indent, false);
+    format!("{{\n{body}\n{indent}}}")
 }
 
 #[cfg(test)]
@@ -623,6 +637,62 @@ world: world
         assert!(
             out.contains("with item by item.id"),
             "walk keeps the `by <key>` clause, got:\n{out}"
+        );
+    }
+
+    #[test]
+    fn nested_call_enchant_keeps_relative_nesting() {
+        let out = fmt(&format!(
+            "{CTX}Column (grow: 1.0) [ GaussRadius(Tween::new(Fixed::from_int(0), Fixed::from_int(3), MS, ease::lin, PlayMode::PingPong).into()) ] {{ Text (\"x\") {{}} }}\n"
+        ));
+        let lead = |needle: &str| {
+            let l = out
+                .lines()
+                .find(|l| l.trim_start().starts_with(needle))
+                .unwrap_or_else(|| panic!("no `{needle}` line, got:\n{out}"));
+            l.len() - l.trim_start().len()
+        };
+        assert_eq!(
+            lead("Tween::new("),
+            lead("GaussRadius(") + 4,
+            "inner call one level under outer, got:\n{out}"
+        );
+        assert!(
+            lead("Fixed::from_int(0)") > lead("Tween::new("),
+            "call args deeper than the call, got:\n{out}"
+        );
+    }
+
+    #[test]
+    fn short_walk_block_stays_inline() {
+        let out = fmt(&format!(
+            "{CTX}walk ${{ rows.get() }} with card {{ Text (\"x\") {{}} }}\n"
+        ));
+        assert!(
+            out.contains("walk ${ rows.get() } with card"),
+            "a short ${{ block }} iterable stays on one line, got:\n{out}"
+        );
+    }
+
+    #[test]
+    fn multiline_walk_block_iterable_indents_under_walk() {
+        // Long enough that prettyplease wraps the iterable across lines.
+        let out = fmt(&format!(
+            "{CTX}walk ${{ really_long_source_name.get().iter().filter(|row| row.is_enabled && row.visible).cloned().collect::<alloc::vec::Vec<_>>() }} with card {{ Text (\"x\") {{}} }}\n"
+        ));
+        let walk_lead = out
+            .lines()
+            .find(|l| l.trim_start() == "walk ${")
+            .map(|l| l.len() - l.trim_start().len())
+            .unwrap_or_else(|| panic!("expected multi-line `walk ${{`, got:\n{out}"));
+        let body = out
+            .lines()
+            .find(|l| l.trim_start().starts_with("really_long_source_name"))
+            .unwrap_or_else(|| panic!("no iterable body line, got:\n{out}"));
+        let body_lead = body.len() - body.trim_start().len();
+        assert!(
+            body_lead > walk_lead,
+            "wrapped iterable body indents under walk, not column 0, got:\n{out}"
         );
     }
 }
