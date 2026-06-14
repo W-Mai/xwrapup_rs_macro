@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.9.2] - 2026-06-15
+
+### Fixed
+
+- **`xrune-fmt` indents multi-line expressions correctly everywhere** — the 1.9.1 fix only handled `${ block }` attribute values and over-indented nested calls and struct literals (e.g. an enchant `GaussRadius(Tween::new(…).into())`); a multi-line value in a `walk` / `if` / `match` head or an `on(...)` argument was dropped to column zero. Multi-line expressions are now rebased to their target column while preserving relative nesting, at any depth and in every position.
+- **Short `${ block }` values stay inline** — a single-statement `${ expr }` that fits on one line (e.g. `walk ${ rows.get() } with …`) no longer expands to a three-line block.
+
 ## [1.9.1] - 2026-06-14
 
 ### Fixed
