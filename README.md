@@ -25,7 +25,7 @@ A declarative UI DSL proc macro framework with pluggable code generation backend
 - Enchants — attach arbitrary data to nodes via `[expr, ...]` syntax
 - Context area with arbitrary key-value pairs
 - Conditional rendering (`if` / `elif` / `else`)
-- Iteration (`walk ... with ...`)
+- Iteration (`walk ... with ...`, optional `by <key>` for identity-based reconciliation)
 - Reactive `$` sigil on control flow and attributes (`if $cond`, `match $expr`, `walk $items`, `attr: $signal` / `attr: ${ expr }`)
 - Pluggable codegen via `DsRune` trait — bring your own backend
 
@@ -143,7 +143,8 @@ impl DsRune for MyRune {
         &mut self,
         iterable: &syn::Expr,
         variable: &syn::Ident,
-        reactive: bool,             // `walk $items` sets this
+        reactive: bool,                 // `walk $items` sets this
+        key: Option<&syn::Expr>,        // `walk ... by item.id` sets this
         children: &[DsTreeRef],
     ) { /* ... */ }
 

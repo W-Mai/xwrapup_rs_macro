@@ -1,5 +1,15 @@
 # Changelog
 
+## [1.9.0] - 2026-06-14
+
+### Added
+
+- **`walk` keyed iteration** — `walk $items with item by item.id { … }` attaches a key expression to each row. The optional `by <expr>` clause sits after the loop variable; `DsIter::get_key()` exposes it (`None` when absent). Backends can use the key to match rows by identity across updates instead of by position. `DsRune::inscribe_iter` gains a `key: Option<&syn::Expr>` parameter.
+
+### Changed
+
+- **`xrune-fmt` round-trips `by <key>`** — the formatter preserves the `with item by item.id` clause.
+
 ## [1.8.0] - 2026-06-14
 
 ### Added
