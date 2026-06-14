@@ -1,5 +1,11 @@
 # Changelog
 
+## [1.9.1] - 2026-06-14
+
+### Fixed
+
+- **`xrune-fmt` preserves nesting inside `${ block }` attribute values** — a multi-line expression in a reactive `${ … }` attr (e.g. a `format!` that wraps across lines) was flattened: its inner arguments landed at the same level as the call and the closing bracket was indented less than the arguments. The block now formats one level under its attribute, with each nested line correctly stepped.
+
 ## [1.9.0] - 2026-06-14
 
 ### Added
