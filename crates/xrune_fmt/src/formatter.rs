@@ -297,6 +297,13 @@ fn fmt_expr(expr: &syn::Expr) -> String {
 
 /// Format a syn::Expr with re-indentation for multi-line output
 fn fmt_expr_indented(expr: &syn::Expr, indent: &str) -> String {
+    // A `${ block }` value: format the block directly so its body sits one
+    // level under the `{`, instead of inheriting prettyplease's const-wrapper
+    // indentation through the generic path below.
+    if let syn::Expr::Block(b) = expr {
+        return fmt_block(&b.block, indent);
+    }
+
     let tokens = quote::quote!(#expr);
     let code = format!("const _: () = {{ let _ = {tokens}; }};");
     let Ok(file) = syn::parse_str::<syn::File>(&code) else {
@@ -312,23 +319,16 @@ fn fmt_expr_indented(expr: &syn::Expr, indent: &str) -> String {
     };
     let result = formatted[start..start + end].trim().to_string();
 
-    // Re-indent multi-line results
+    // shift right by `indent`, not flatten — prettyplease already nests correctly.
     if result.contains('\n') && !indent.is_empty() {
-        let inner_indent = format!("{indent}    ");
         result
             .lines()
             .enumerate()
             .map(|(i, line)| {
-                if i == 0 {
+                if i == 0 || line.is_empty() {
                     line.to_string()
                 } else {
-                    let trimmed = line.trim_start();
-                    if trimmed == "}" || trimmed == "}," || trimmed == ")" || trimmed == ")," {
-                        // Closing brace aligns with opening
-                        format!("{indent}{trimmed}")
-                    } else {
-                        format!("{inner_indent}{trimmed}")
-                    }
+                    format!("{indent}{line}")
                 }
             })
             .collect::<Vec<_>>()
@@ -581,6 +581,37 @@ world: world
         assert!(
             out.contains("walk ${"),
             "walk ${{block}} keeps $ with no gap, got:\n{out}"
+        );
+    }
+
+    #[test]
+    fn reactive_block_attr_preserves_nesting() {
+        let out = fmt(&format!(
+            "{CTX}Text (text: ${{ format!(\"value: {{}}   changes: {{}}   drags: {{}}\", s.get().last_value, s.get().changes, s.get().drags) }}, id: \"stats_label\", height: 30) {{}}\n"
+        ));
+        let format_line = out
+            .lines()
+            .find(|l| l.trim_start().starts_with("format!("))
+            .unwrap_or_else(|| panic!("no format!( line, got:\n{out}"));
+        let arg_line = out
+            .lines()
+            .find(|l| l.trim_start().starts_with("\"value:"))
+            .unwrap_or_else(|| panic!("no arg line, got:\n{out}"));
+        let lead = |l: &str| l.len() - l.trim_start().len();
+        assert!(
+            lead(arg_line) > lead(format_line),
+            "args must be deeper than format!(, got:\n{out}"
+        );
+        // The `${` block body sits exactly one level (4) under its `text: ${`
+        // attr line — not two, which is the const-wrapper over-indent bug.
+        let attr_line = out
+            .lines()
+            .find(|l| l.trim_start().starts_with("text: ${"))
+            .unwrap_or_else(|| panic!("no `text: ${{` line, got:\n{out}"));
+        assert_eq!(
+            lead(format_line),
+            lead(attr_line) + 4,
+            "format!( must be one level under the attr, not over-indented, got:\n{out}"
         );
     }
 
