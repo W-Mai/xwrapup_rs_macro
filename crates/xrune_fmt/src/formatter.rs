@@ -11,23 +11,24 @@ pub fn format_dsl(input: &str, base_indent: &str) -> Option<String> {
     let mut out = String::new();
     let indent1 = format!("{base_indent}    ");
 
-    // Context area
-    out.push_str(&indent1);
-    out.push_str(":(\n");
-    let indent2 = format!("{indent1}    ");
-    for attr in root.get_context_attrs() {
-        out.push_str(&indent2);
-        if let Some(n) = &attr.name {
-            out.push_str(&n.to_string());
-            out.push_str(": ");
+    let attrs = root.get_context_attrs();
+    if !attrs.is_empty() {
+        out.push_str(&indent1);
+        out.push_str(":(\n");
+        let indent2 = format!("{indent1}    ");
+        for attr in attrs {
+            out.push_str(&indent2);
+            if let Some(n) = &attr.name {
+                out.push_str(&n.to_string());
+                out.push_str(": ");
+            }
+            out.push_str(&fmt_expr(&attr.value));
+            out.push('\n');
         }
-        out.push_str(&fmt_expr(&attr.value));
-        out.push('\n');
+        out.push_str(&indent1);
+        out.push_str(":)\n\n");
     }
-    out.push_str(&indent1);
-    out.push_str(":)\n\n");
 
-    // Content tree
     let content = root.get_content();
     format_tree(&content, &indent1, &mut out);
 
@@ -155,15 +156,20 @@ fn format_tree(tree: &DsTreeRef, indent: &str, out: &mut String) {
             out.push_str("}\n");
         }
         DsNode::Niche(niche_node) => {
+            let kids = borrowed.get_children();
             out.push_str(indent);
             out.push('@');
             out.push_str(&niche_node.get_name().to_string());
-            out.push_str(" {\n");
-            for child in borrowed.get_children() {
-                format_tree(child, &child_indent, out);
+            if kids.is_empty() {
+                out.push('\n');
+            } else {
+                out.push_str(" {\n");
+                for child in kids {
+                    format_tree(child, &child_indent, out);
+                }
+                out.push_str(indent);
+                out.push_str("}\n");
             }
-            out.push_str(indent);
-            out.push_str("}\n");
         }
         DsNode::Match(match_node) => {
             out.push_str(indent);
@@ -187,6 +193,13 @@ fn format_tree(tree: &DsTreeRef, indent: &str, out: &mut String) {
             }
             out.push_str(indent);
             out.push_str("}\n");
+        }
+        DsNode::CodeBlock(code) => {
+            let formatted = fmt_code_block(code.get_tokens(), indent);
+            out.push_str(indent);
+            out.push('$');
+            out.push_str(&formatted);
+            out.push('\n');
         }
     }
 }
@@ -372,25 +385,35 @@ fn rebase(lines: &[&str], indent: &str, line0_bare: bool) -> String {
 
 fn fmt_block(block: &syn::Block, indent: &str) -> String {
     let tokens = quote::quote!(#block);
-    let code = format!("fn __xrune_fmt_block_wrapper() {tokens}");
-    let Ok(file) = syn::parse_str::<syn::File>(&code) else {
-        return tokens.to_string();
-    };
+    fmt_wrapped_body(&tokens, indent).unwrap_or_else(|| tokens.to_string())
+}
+
+fn fmt_code_block(tokens: &proc_macro2::TokenStream, indent: &str) -> String {
+    let wrapped = quote::quote!({ #tokens });
+    fmt_wrapped_body(&wrapped, indent).unwrap_or_else(|| format!("{{ {tokens} }}"))
+}
+
+fn fmt_wrapped_body(brace_tokens: &proc_macro2::TokenStream, indent: &str) -> Option<String> {
+    let code = format!("fn __xrune_fmt_block_wrapper() {brace_tokens}");
+    let file = syn::parse_str::<syn::File>(&code).ok()?;
     let formatted = prettyplease::unparse(&file);
-    let Some(open) = formatted.find('{') else {
-        return tokens.to_string();
-    };
-    let Some(close) = formatted.rfind('}') else {
-        return tokens.to_string();
-    };
+    let open = formatted.find('{')?;
+    let close = formatted.rfind('}')?;
     if close <= open {
-        return tokens.to_string();
+        return None;
     }
     let inner = formatted[open + 1..close].trim_matches('\n');
     let lines: Vec<&str> = inner.lines().map(|l| l.trim_end()).collect();
     let body_indent = format!("{indent}    ");
     let body = rebase(&lines, &body_indent, false);
-    format!("{{\n{body}\n{indent}}}")
+    if body.is_empty() {
+        Some("{ }".to_string())
+    } else if !body.contains('\n') {
+        let single = body.trim();
+        Some(format!("{{ {single} }}"))
+    } else {
+        Some(format!("{{\n{body}\n{indent}}}"))
+    }
 }
 
 #[cfg(test)]
@@ -408,6 +431,49 @@ world: world
 :)
 
 ";
+
+    #[test]
+    fn empty_header_produces_no_context_block() {
+        let out = fmt("Widget {}");
+        assert!(
+            !out.contains(":("),
+            "no context attrs → no `:( :)` header. got:\n{out}"
+        );
+    }
+
+    #[test]
+    fn multiline_code_block_preserves_lines() {
+        let out = fmt(&format!(
+            "{CTX}Widget {{ ${{
+                let a = 1;
+                let b = 2;
+            }} @body }}"
+        ));
+        assert!(
+            out.contains("${\n") && out.contains("let a = 1;") && out.contains("let b = 2;"),
+            "multi-line ${{...}} keeps its structure. got:\n{out}"
+        );
+    }
+
+    #[test]
+    fn bare_niche_reference_stays_bare() {
+        let out = fmt(&format!("{CTX}Card {{ @header @body }}"));
+        assert!(
+            out.contains("@header\n") && !out.contains("@header {"),
+            "bare @name should not gain a body block. got:\n{out}"
+        );
+    }
+
+    #[test]
+    fn niche_with_body_keeps_braces() {
+        let out = fmt(&format!(
+            "{CTX}Card {{ @header {{ Text (\"hi\") }} }}"
+        ));
+        assert!(
+            out.contains("@header {"),
+            "@name with body keeps the block. got:\n{out}"
+        );
+    }
 
     #[test]
     fn childless_node_omits_braces() {

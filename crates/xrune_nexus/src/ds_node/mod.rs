@@ -1,4 +1,5 @@
 pub mod ds_attr;
+pub mod ds_code_block;
 pub mod ds_context;
 pub mod ds_custom_token;
 pub mod ds_if;
@@ -59,6 +60,7 @@ impl Debug for DsTree {
                 DsNode::Iter(_) => "Iter",
                 DsNode::Niche(_) => "Niche",
                 DsNode::Match(_) => "Match",
+                DsNode::CodeBlock(_) => "CodeBlock",
                 DsNode::Else => "Else",
             },
         };
@@ -76,7 +78,7 @@ impl Parse for DsTree {
 
         let mut node = DsNode::parse(input)?;
 
-        let needs_body = matches!(node, DsNode::If(_) | DsNode::Iter(_) | DsNode::Niche(_));
+        let needs_body = matches!(node, DsNode::If(_) | DsNode::Iter(_));
         let has_braces = input.peek(syn::token::Brace);
 
         let children = if needs_body || has_braces {

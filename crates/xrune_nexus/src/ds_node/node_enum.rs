@@ -1,3 +1,4 @@
+use super::ds_code_block::DsCodeBlock;
 use super::ds_if::DsIf;
 use super::ds_iter::DsIter;
 use super::ds_match::DsMatch;
@@ -15,6 +16,7 @@ pub enum DsNodeType {
     Iter,
     Niche,
     Match,
+    CodeBlock,
 }
 
 pub enum DsNode {
@@ -24,6 +26,7 @@ pub enum DsNode {
     Iter(DsIter),
     Niche(DsNiche),
     Match(DsMatch),
+    CodeBlock(DsCodeBlock),
     Else,
 }
 
@@ -36,6 +39,7 @@ impl Debug for DsNode {
             DsNode::Iter(iter) => write!(f, "Iter({iter:?})"),
             DsNode::Niche(niche) => write!(f, "Niche({niche:?})"),
             DsNode::Match(match_node) => write!(f, "Match({match_node:?})"),
+            DsNode::CodeBlock(code) => write!(f, "{code:?}"),
             DsNode::Else => write!(f, "Else"),
         }
     }
@@ -44,7 +48,9 @@ impl Debug for DsNode {
 impl DsNodeType {
     fn what_type(input: ParseStream) -> syn::Result<DsNodeType> {
         use super::ds_on::DsOn;
-        if DsNiche::is_me(input) {
+        if DsCodeBlock::is_me(input) {
+            Ok(DsNodeType::CodeBlock)
+        } else if DsNiche::is_me(input) {
             Ok(DsNodeType::Niche)
         } else if DsMatch::is_me(input) {
             Ok(DsNodeType::Match)
@@ -61,7 +67,7 @@ impl DsNodeType {
                  `Widget() on EventKind { ... } {}`",
             ))
         } else {
-            Err(input.error("expected widget / if / walk / match / @niche"))
+            Err(input.error("expected widget / if / walk / match / @niche / ${ rust code }"))
         }
     }
 }
@@ -76,6 +82,7 @@ impl Parse for DsNode {
             DsNodeType::Iter => DsNode::Iter(input.parse()?),
             DsNodeType::Niche => DsNode::Niche(input.parse()?),
             DsNodeType::Match => DsNode::Match(input.parse()?),
+            DsNodeType::CodeBlock => DsNode::CodeBlock(input.parse()?),
         };
 
         Ok(node)

@@ -131,24 +131,334 @@ mod tests {
         // Value is a complex expression - just verify it parsed
     }
     #[test]
-    fn error_missing_parent_prefix() {
+    fn header_optional_no_prefix() {
         let tokens = quote! { div (width: 100) {} };
         let result = syn::parse2::<crate::ds_node::DsRoot>(tokens);
-        assert!(result.is_err());
-        assert!(
-            result
-                .unwrap_err()
-                .to_string()
-                .contains("Root node must have a parent")
-        );
+        assert!(result.is_ok(), "header is optional; runes fill parent");
+        let root = result.unwrap();
+        assert!(root.get_context_attrs().is_empty());
     }
 
     #[test]
-    fn error_missing_parent_attr() {
+    fn parse_code_block_top_level() {
+        let tokens = quote! { ${ let x = 1; } };
+        let tree: DsTree = parse2(tokens).unwrap();
+        match tree.get_node() {
+            DsNode::CodeBlock(code) => {
+                assert!(code.get_tokens().to_string().contains("let x = 1"));
+            }
+            other => panic!("expected CodeBlock, got {other:?}"),
+        }
+    }
+
+    #[test]
+    fn parse_code_block_between_widgets() {
+        let tokens = quote! {
+            Root {
+                Child {}
+                ${ let pad = 12; }
+                OtherChild {}
+            }
+        };
+        let root: DsTree = parse2(tokens).unwrap();
+        let kids = root.get_children();
+        assert_eq!(kids.len(), 3);
+        assert!(matches!(kids[1].borrow().get_node(), DsNode::CodeBlock(_)));
+    }
+
+    #[test]
+    fn parse_code_block_multi_statement() {
+        let tokens = quote! {
+            ${
+                let x = 1;
+                let y = 2;
+                let z = x + y;
+            }
+        };
+        let tree: DsTree = parse2(tokens).unwrap();
+        match tree.get_node() {
+            DsNode::CodeBlock(code) => {
+                let s = code.get_tokens().to_string();
+                assert!(s.contains("let x = 1"));
+                assert!(s.contains("let y = 2"));
+                assert!(s.contains("let z = x + y"));
+            }
+            other => panic!("expected multi-statement CodeBlock, got {other:?}"),
+        }
+    }
+
+    #[test]
+    fn parse_code_block_empty() {
+        let tokens = quote! { ${ } };
+        let tree: DsTree = parse2(tokens).unwrap();
+        match tree.get_node() {
+            DsNode::CodeBlock(code) => {
+                assert!(code.get_tokens().is_empty());
+            }
+            other => panic!("expected empty CodeBlock, got {other:?}"),
+        }
+    }
+
+    #[test]
+    fn parse_niche_with_body_widgets() {
+        let tokens = quote! {
+            @header {
+                Text ("Untitled")
+                Icon (name: "warn")
+            }
+        };
+        let tree: DsTree = parse2(tokens).unwrap();
+        match tree.get_node() {
+            DsNode::Niche(n) => {
+                assert_eq!(n.get_name().to_string(), "header");
+            }
+            other => panic!("expected Niche, got {other:?}"),
+        }
+        assert_eq!(tree.get_children().len(), 2);
+    }
+
+    #[test]
+    fn parse_nested_widget_with_niche_refs() {
+        let tokens = quote! {
+            Column (grow: 1.0) {
+                View (bg_color: Primary) {
+                    @header
+                }
+                View (grow: 1.0) {
+                    @body
+                }
+                View {
+                    @footer
+                }
+            }
+        };
+        let tree: DsTree = parse2(tokens).unwrap();
+        let column_kids = tree.get_children();
+        assert_eq!(column_kids.len(), 3);
+        for child in column_kids {
+            let borrowed = child.borrow();
+            assert!(matches!(borrowed.get_node(), DsNode::Widget(_)));
+            let grandkids = borrowed.get_children();
+            assert_eq!(grandkids.len(), 1);
+            assert!(matches!(grandkids[0].borrow().get_node(), DsNode::Niche(_)));
+        }
+    }
+
+    #[test]
+    fn parse_code_block_inside_if_body() {
+        let tokens = quote! {
+            if cond {
+                ${ let pad = 12; }
+                Widget {}
+            }
+        };
+        let tree: DsTree = parse2(tokens).unwrap();
+        assert!(matches!(tree.get_node(), DsNode::If(_)));
+        let kids = tree.get_children();
+        assert_eq!(kids.len(), 2);
+        assert!(matches!(kids[0].borrow().get_node(), DsNode::CodeBlock(_)));
+    }
+
+    #[test]
+    fn parse_code_block_inside_match_arm() {
+        let tokens = quote! {
+            match state {
+                State::Loading => {
+                    ${ let msg = "loading"; }
+                    Spinner()
+                }
+            }
+        };
+        let tree: DsTree = parse2(tokens).unwrap();
+        assert!(matches!(tree.get_node(), DsNode::Match(_)));
+    }
+
+    #[test]
+    fn parse_code_block_inside_niche_body() {
+        let tokens = quote! {
+            @header {
+                ${ let title = "Default"; }
+                Text (title)
+            }
+        };
+        let tree: DsTree = parse2(tokens).unwrap();
+        assert!(matches!(tree.get_node(), DsNode::Niche(_)));
+        let kids = tree.get_children();
+        assert_eq!(kids.len(), 2);
+        assert!(matches!(kids[0].borrow().get_node(), DsNode::CodeBlock(_)));
+    }
+
+    #[test]
+    fn parse_multiple_code_blocks_in_sequence() {
+        let tokens = quote! {
+            Widget {
+                ${ let a = 1; }
+                ${ let b = 2; }
+                Child {}
+            }
+        };
+        let tree: DsTree = parse2(tokens).unwrap();
+        let kids = tree.get_children();
+        assert_eq!(kids.len(), 3);
+        assert!(matches!(kids[0].borrow().get_node(), DsNode::CodeBlock(_)));
+        assert!(matches!(kids[1].borrow().get_node(), DsNode::CodeBlock(_)));
+        assert!(matches!(kids[2].borrow().get_node(), DsNode::Widget(_)));
+    }
+
+    #[test]
+    fn parse_code_block_with_closures_and_nested_braces() {
+        let tokens = quote! {
+            ${
+                let f = |x: i32| { x + 1 };
+                let r = if true { 1 } else { 2 };
+            }
+        };
+        let tree: DsTree = parse2(tokens).unwrap();
+        match tree.get_node() {
+            DsNode::CodeBlock(code) => {
+                let s = code.get_tokens().to_string();
+                assert!(s.contains("| x"));
+                assert!(s.contains("if true"));
+            }
+            other => panic!("expected CodeBlock, got {other:?}"),
+        }
+    }
+
+    #[test]
+    fn reactive_if_with_dollar_expr_not_confused_with_code_block() {
+        let tokens = quote! {
+            if ${ state == State::Ready } {
+                Widget {}
+            }
+        };
+        let tree: DsTree = parse2(tokens).unwrap();
+        match tree.get_node() {
+            DsNode::If(if_node) => {
+                assert!(
+                    if_node.is_reactive(),
+                    "`if ${{ expr }}` must resolve as reactive-if, not a top-level code block"
+                );
+            }
+            other => panic!("expected reactive If, got {other:?}"),
+        }
+        assert_eq!(tree.get_children().len(), 1);
+    }
+
+    #[test]
+    fn reactive_walk_with_dollar_expr_not_confused_with_code_block() {
+        let tokens = quote! {
+            walk ${ items.iter() } with i {
+                Row (index: i)
+            }
+        };
+        let tree: DsTree = parse2(tokens).unwrap();
+        match tree.get_node() {
+            DsNode::Iter(iter) => {
+                assert!(iter.is_reactive(), "reactive walk must not be misparsed as code block");
+            }
+            other => panic!("expected reactive Iter, got {other:?}"),
+        }
+    }
+
+    #[test]
+    fn reactive_match_with_dollar_expr_not_confused_with_code_block() {
+        let tokens = quote! {
+            match ${ state.get() } {
+                State::Loading => { Spinner () }
+                _ => { Content () }
+            }
+        };
+        let tree: DsTree = parse2(tokens).unwrap();
+        match tree.get_node() {
+            DsNode::Match(m) => {
+                assert!(m.is_reactive(), "reactive match must not be misparsed as code block");
+            }
+            other => panic!("expected reactive Match, got {other:?}"),
+        }
+    }
+
+    #[test]
+    fn code_block_and_reactive_dollar_coexist() {
+        // Statement-position ${} → CodeBlock;
+        // condition-position ${} → reactive prefix.
+        let tokens = quote! {
+            Widget {
+                ${ let pad = 12; }
+                if ${ visible.get() } {
+                    Child (padding: pad)
+                }
+            }
+        };
+        let tree: DsTree = parse2(tokens).unwrap();
+        let kids = tree.get_children();
+        assert_eq!(kids.len(), 2);
+        assert!(matches!(kids[0].borrow().get_node(), DsNode::CodeBlock(_)));
+        match kids[1].borrow().get_node() {
+            DsNode::If(if_node) => assert!(if_node.is_reactive()),
+            other => panic!("expected reactive If as sibling of CodeBlock, got {other:?}"),
+        }
+    }
+
+    #[test]
+    fn parse_niche_inside_walk_body() {
+        let tokens = quote! {
+            walk items with it {
+                @slot { Row (data: it) }
+            }
+        };
+        let tree: DsTree = parse2(tokens).unwrap();
+        assert!(matches!(tree.get_node(), DsNode::Iter(_)));
+        let kids = tree.get_children();
+        assert_eq!(kids.len(), 1);
+        assert!(matches!(kids[0].borrow().get_node(), DsNode::Niche(_)));
+    }
+
+    #[test]
+    fn parse_code_block_inside_walk() {
+        let tokens = quote! {
+            walk items with i {
+                ${ let key = i * 2; }
+                Row (index: i)
+            }
+        };
+        let tree: DsTree = parse2(tokens).unwrap();
+        match tree.get_node() {
+            DsNode::Iter(_) => {}
+            other => panic!("expected Iter, got {other:?}"),
+        }
+        let kids = tree.get_children();
+        assert_eq!(kids.len(), 2);
+        assert!(matches!(kids[0].borrow().get_node(), DsNode::CodeBlock(_)));
+        assert!(matches!(kids[1].borrow().get_node(), DsNode::Widget(_)));
+    }
+
+    #[test]
+    fn root_no_header_produces_unit_parent() {
+        let tokens = quote! { Widget (x: 1) {} };
+        let root = parse2::<crate::ds_node::DsRoot>(tokens).unwrap();
+        assert!(root.get_context_attrs().is_empty());
+        let parent = root.get_parent();
+        let s = quote!(#parent).to_string();
+        assert_eq!(s, "()", "no header → parent expr is unit");
+    }
+
+    #[test]
+    fn root_header_without_parent_attr() {
+        let tokens = quote! { :(world: w:) Widget {} };
+        let root = parse2::<crate::ds_node::DsRoot>(tokens).unwrap();
+        assert_eq!(root.get_context_attrs().len(), 1);
+        let parent = root.get_parent();
+        let s = quote!(#parent).to_string();
+        assert_eq!(s, "()", "header without parent attr falls back to unit");
+    }
+
+    #[test]
+    fn header_present_without_parent_attr() {
         let tokens = quote! { :(foo: 123:) div {} };
         let result = syn::parse2::<crate::ds_node::DsRoot>(tokens);
-        assert!(result.is_err());
-        assert!(result.unwrap_err().to_string().contains("parent"));
+        assert!(result.is_ok(), "unnamed parent attr is filled with unit");
+        let root = result.unwrap();
+        assert_eq!(root.get_context_attrs().len(), 1);
     }
 
     #[test]
@@ -217,10 +527,16 @@ mod tests {
     }
 
     #[test]
-    fn error_niche_without_body() {
+    fn niche_without_body_is_a_bare_reference() {
         let tokens = quote! { @header };
-        let result = syn::parse2::<DsTree>(tokens);
-        assert!(result.is_err());
+        let tree = syn::parse2::<DsTree>(tokens).expect("bare @name is legal");
+        match tree.get_node() {
+            DsNode::Niche(n) => {
+                assert_eq!(n.get_name().to_string(), "header");
+            }
+            other => panic!("expected Niche, got {other:?}"),
+        }
+        assert!(tree.get_children().is_empty());
     }
 
     #[test]

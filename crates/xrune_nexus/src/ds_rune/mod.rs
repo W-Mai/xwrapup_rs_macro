@@ -54,6 +54,10 @@ pub trait DsRune {
         arms: &[crate::ds_node::ds_match::DsMatchArm],
     );
 
+    /// Inscribe a `${ ... }` opaque Rust code block. Runes typically
+    /// splice the token stream verbatim into the generated code.
+    fn inscribe_code_block(&mut self, tokens: &proc_macro2::TokenStream);
+
     /// Seal the rune — finalize and return the generated TokenStream.
     fn seal(self) -> proc_macro2::TokenStream;
 }

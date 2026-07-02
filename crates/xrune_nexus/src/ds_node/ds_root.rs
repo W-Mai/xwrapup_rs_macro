@@ -49,9 +49,7 @@ impl Debug for DsRoot {
 
 impl Parse for DsRoot {
     fn parse(input: ParseStream) -> syn::Result<Self> {
-        let err = syn::Error::new(input.span(), "Root node must have a parent");
-
-        if input.peek(syn::Token![:]) {
+        let (attrs, parent) = if input.peek(syn::Token![:]) {
             input.parse::<syn::Token![:]>()?;
 
             let header_span_for_check = input.fork().span();
@@ -79,29 +77,31 @@ impl Parse for DsRoot {
                 ));
             }
 
-            let parent_attr = attrs
+            let parent = attrs
                 .iter()
                 .find(|attr| attr.name.as_ref().is_some_and(|n| n == "parent"))
-                .ok_or(err)?;
-            let parent = parent_attr.value.clone();
+                .map(|a| a.value.clone())
+                .unwrap_or_else(|| syn::parse_quote!(()));
 
-            let content = DsTree::parse(input)?.into_ref();
-            content.borrow_mut().set_parent(
-                DsTree {
-                    parent: None,
-                    node: DsNode::Root(parent),
-                    children: vec![],
-                    else_branch: None,
-                }
-                .into_ref(),
-            );
-
-            Ok(DsRoot {
-                context_attrs: attrs,
-                content,
-            })
+            (attrs, parent)
         } else {
-            Err(err)
-        }
+            (Vec::new(), syn::parse_quote!(()))
+        };
+
+        let content = DsTree::parse(input)?.into_ref();
+        content.borrow_mut().set_parent(
+            DsTree {
+                parent: None,
+                node: DsNode::Root(parent),
+                children: vec![],
+                else_branch: None,
+            }
+            .into_ref(),
+        );
+
+        Ok(DsRoot {
+            context_attrs: attrs,
+            content,
+        })
     }
 }

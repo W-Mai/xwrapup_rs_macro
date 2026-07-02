@@ -133,6 +133,14 @@ impl DsRune for DefaultRune {
         });
     }
 
+    fn inscribe_code_block(&mut self, tokens: &proc_macro2::TokenStream) {
+        use quote::quote;
+        let repr = tokens.to_string();
+        self.tokens.extend(quote! {
+            println!("${{ {} }}", #repr);
+        });
+    }
+
     fn inscribe_match(
         &mut self,
         scrutinee: &syn::Expr,

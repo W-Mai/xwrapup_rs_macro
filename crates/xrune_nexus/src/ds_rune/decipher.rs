@@ -48,6 +48,9 @@ pub fn decipher(tree: &DsTreeRef, rune: &mut dyn DsRune) {
                 match_node.get_arms(),
             );
         }
+        DsNode::CodeBlock(code) => {
+            rune.inscribe_code_block(code.get_tokens());
+        }
         DsNode::Else => {
             for child in borrowed.get_children() {
                 decipher(child, rune);
