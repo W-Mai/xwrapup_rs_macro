@@ -158,7 +158,11 @@ fn format_tree(tree: &DsTreeRef, indent: &str, out: &mut String) {
         DsNode::Niche(niche_node) => {
             let kids = borrowed.get_children();
             out.push_str(indent);
-            out.push('@');
+            out.push_str(if niche_node.is_declaration() {
+                "@@"
+            } else {
+                "@"
+            });
             out.push_str(&niche_node.get_name().to_string());
             if kids.is_empty() {
                 out.push('\n');
@@ -466,12 +470,34 @@ world: world
 
     #[test]
     fn niche_with_body_keeps_braces() {
-        let out = fmt(&format!(
-            "{CTX}Card {{ @header {{ Text (\"hi\") }} }}"
-        ));
+        let out = fmt(&format!("{CTX}Card {{ @header {{ Text (\"hi\") }} }}"));
         assert!(
             out.contains("@header {"),
             "@name with body keeps the block. got:\n{out}"
+        );
+    }
+
+    #[test]
+    fn niche_declaration_bare_prints_double_at() {
+        let out = fmt(&format!("{CTX}Card {{ @@header @@body }}"));
+        assert!(
+            out.contains("@@header\n") && out.contains("@@body\n"),
+            "@@decl should emit `@@name` bare, not `@name` or `@@name {{}}`. got:\n{out}"
+        );
+        assert!(
+            !out.contains("@@header {"),
+            "bare @@decl must not gain empty braces. got:\n{out}"
+        );
+    }
+
+    #[test]
+    fn niche_declaration_with_fallback_keeps_braces() {
+        let out = fmt(&format!(
+            "{CTX}Card {{ @@body {{ Text (\"fallback\") {{}} }} }}"
+        ));
+        assert!(
+            out.contains("@@body {"),
+            "@@decl with fallback body keeps the block. got:\n{out}"
         );
     }
 

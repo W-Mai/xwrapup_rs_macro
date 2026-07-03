@@ -39,7 +39,11 @@ pub fn decipher(tree: &DsTreeRef, rune: &mut dyn DsRune) {
             );
         }
         DsNode::Niche(niche_node) => {
-            rune.inscribe_niche(niche_node.get_name(), borrowed.get_children());
+            rune.inscribe_niche(
+                niche_node.get_name(),
+                niche_node.is_declaration(),
+                borrowed.get_children(),
+            );
         }
         DsNode::Match(match_node) => {
             rune.inscribe_match(

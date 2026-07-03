@@ -127,10 +127,11 @@ impl DsRune for DefaultRune {
         });
     }
 
-    fn inscribe_niche(&mut self, name: &syn::Ident, children: &[DsTreeRef]) {
+    fn inscribe_niche(&mut self, name: &syn::Ident, is_declaration: bool, children: &[DsTreeRef]) {
         let name_str = name.to_string();
+        let sigil = if is_declaration { "@@" } else { "@" };
         self.tokens.extend(quote! {
-            println!("@{} {{", #name_str);
+            println!("{}{} {{", #sigil, #name_str);
         });
         for child in children {
             decipher(child, self);

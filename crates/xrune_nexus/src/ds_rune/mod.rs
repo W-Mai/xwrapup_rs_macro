@@ -43,8 +43,11 @@ pub trait DsRune {
         children: &[DsTreeRef],
     );
 
-    /// Inscribe a niche node — `@name { ... }` at the call site.
-    fn inscribe_niche(&mut self, name: &syn::Ident, children: &[DsTreeRef]);
+    /// Inscribe a niche node. `is_declaration` distinguishes
+    /// `@@name` (a template declaring an exposed slot, optionally
+    /// with fallback children) from `@name` (a call site filling
+    /// the slot).
+    fn inscribe_niche(&mut self, name: &syn::Ident, is_declaration: bool, children: &[DsTreeRef]);
 
     /// Inscribe a match node — `match expr { Pat => { ... } ... }`.
     fn inscribe_match(
