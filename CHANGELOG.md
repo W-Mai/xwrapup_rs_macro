@@ -1,5 +1,16 @@
 # Changelog
 
+## [1.10.0] - 2026-07-03
+
+### Added
+
+- **`${ ... }` code-block node** — the sigil captures a Rust block between `$` and the matching brace verbatim. The parser adds a `DsCodeBlock(TokenStream, source_text)` AST variant and the `DsRune::inscribe_code_block` trait method; runes can splice raw Rust into the generated code without xrune interpreting it. `xrune-fmt` reformats the block body through prettyplease and rebases its indentation to the enclosing DSL column.
+- **`@@name` niche declaration sigil** — the double-`@` form marks a niche as a slot declaration, distinguishing template authoring from call-site fill (`@name`). `DsNiche` grows `is_declaration: bool`; `DsRune::inscribe_niche` receives it. `@@name` accepts an optional body block for fallback children. Composing templates that nest other templates now resolves lexically, without runtime inspection.
+
+### Changed
+
+- **Root header (`:( … :)`) is now optional** — a DSL fragment can start straight at the content tree. When the header is absent, `DsRoot::get_parent` returns a unit expression and `get_context_attrs` returns an empty slice; runes that construct their own parent (a template body spawning the root entity locally) skip the header entirely.
+
 ## [1.9.2] - 2026-06-15
 
 ### Fixed
